@@ -1,0 +1,134 @@
+# dsh-ego — 主动念头（两段式）
+#
+# 每个整点后 0~delayMaxMinutes 分钟之间随机醒一次，先掷骰子，掷中才干活：
+#   1. 提议器 agent（只读工具）想一个具体点子；
+#   2. 裁决器 agent（独立上下文，只看点子和理由）三选一：
+#        silent 什么都不做（用户看不见）/ ask 跟用户说一句 / do 直接开票。
+# 23:40-08:00 安静时段、峰价时段（offPeakOnly）不醒。
+#
+# 以下全是默认值，用户改这里就生效；插件里 DEFAULTS 只做兜底。
+# 没写的键一律用插件默认值（补丁按整行替换，不做深合并）：只写你想改的那几行也合法。
+- insert:
+    - id: dsh-ego
+      name: 'dsh-ego'
+      config:
+        enabled: true
+        dryRun: false
+        # 整点后 0~8 分钟随机醒（别让用户看出这是定时器）
+        delayMaxMinutes: 8
+        # 命中线 35%：没掷中什么都不做，一分钟就过去了
+        diceProbability: 0.35
+        offPeakOnly: true
+        # 这些日期算谷价（YYYY-MM-DD），跟 offPeakOnly 一起用
+        holidays: []
+        # 23.66 = 23:40（小数小时，支持到分钟）
+        quietStart: 23.66
+        quietEnd: 8
+        privateOnly: true
+        # 空串 = 等用户在私聊里说一句，插件自己学
+        targetSession: ''
+        # 发不出去/开不了票时先存着，每拍重试，超时就丢
+        pendingTtlMinutes: 30
+        # 开票工具的调用上限
+        openTimeoutMs: 30000
+        # 连续失败 3 拍，下一拍推后 60 分钟
+        maxFailStreak: 3
+        backoffMinutes: 60
+        # 三个路径不写就用插件默认（os.homedir() 拼出来的绝对路径，不受当前目录影响）：
+        #   qqPrefsPath  -> ~/.dsh-ego/model-prefs.json  聊天前端的模型偏好文件
+        #   statePath    -> ~/.dsh-ego/state.json
+        #   logPath      -> ~/.dsh-ego/dsh-ego.log
+        # 要换位置就自己写绝对路径；前端不提供偏好文件也没关系，读不到会退回空偏好。
+        # 偏好服务名：前端在 ctx 上挂了别的名字就改这里；没有这个服务会退回读文件
+        prefsService: 'qqbot/prefs'
+        # 调试用：手动催一拍。touch 这个文件，15 秒内立刻跑一拍：
+        # 跳过骰子、安静时段、峰价窗口和 nextRunAt 排期；privateOnly 和目标会话照旧检查；
+        # 跑完 nextRunAt 不动，正常排期该什么时候还什么时候
+        # forceTriggerPath 默认 ~/.dsh-ego/force，要换就写绝对路径
+        forceIntervalMs: 15000
+        proposer:
+          enabled: true
+          # 留空 = 用宿主自己的默认路由；要指定就填你的服务商和模型名
+          provider: ''
+          model: ''
+          # 0 = 不设上限：不往请求里写 max_tokens，交给服务端默认
+          maxTokens: 0
+          # 推理档位 low / high / max，不填就走服务端默认；
+          # 写了别的值 schema 拒，routeOptions 里还会再过滤一次
+          # reasoningEffort: low
+          timeoutMs: 600000
+          # 只读：想点子不许动手
+          allow:
+            - read
+            - glob
+            - grep
+            - chat_recall
+            - memory_recall
+            - memory_entity
+            - sbi_search
+            - sbi_status
+            - web_search
+            - web_fetch
+            - host_status
+            - host_alerts
+            - read_image
+          # 素材池：写进提示词的思考方向，开源版默认这 8 条通用方向。
+          # 这里整组可换，写了就以你的为准；不写就走插件代码里的空兜底（不列方向）。
+          materials:
+            - 手上还没收尾的待办、说好要做的事
+            - 挑一个本地仓库翻翻，看有没有明显的 bug、跑不过的测试、过期的 TODO
+            - 本地仓库和远端是不是同步（有没有该推的提交、该拉的提交）
+            - yaml / 配置里有没有已经没人用的项、重复的段、注释掉的死配置
+            - 陈旧的备份、日志、临时文件是不是该清了（只许提，别动手）
+            - 邮箱 / 消息通知里有没有攒着没看的东西
+            - 记忆里有没有新条目、有没有互相矛盾的
+            - 宿主机器的状态：温度、内存、磁盘、服务、日志里有没有异常
+          # 对象名词表：idea 里得出现其中一个（或写清标识符），否则判不具体。
+          # 不写就走空兜底：不按名词卡对象，只要求点子自带数量。
+          objectHints:
+            - 表
+            - 文件
+            - 目录
+            - 路径
+            - 服务
+            - 日志
+            - 备份
+            - 记录
+            - 队列
+            - 仓库
+            - 缓存
+            - 条目
+            - 会话
+            - 进程
+            - 端口
+        judge:
+          enabled: true
+          # 留空 = 用宿主自己的默认路由（同 proposer）
+          provider: ''
+          model: ''
+          # 0 = 不设上限（同上）
+          maxTokens: 0
+          # 推理档位，不填走服务端默认（同 proposer）
+          # reasoningEffort: low
+          timeoutMs: 180000
+          # 裁决器只看记忆，连文件都不用自己翻
+          allow:
+            - read
+            - chat_recall
+            - memory_recall
+            - memory_entity
+          # ask 文案的长度上下限（按字符/码点数，约 50~90 个汉字）；要改就一起改提示词
+          askMinChars: 60
+          askMaxChars: 160
+          # 出现这些词就判这一拍失败：黑话、内部术语，用户看不懂
+          forbiddenWords:
+            - 死账
+            - 下刀
+            - 捞不回来
+            - 开刀
+            - 动刀
+            - 按照规则
+            - 按规则
+            - 规则 2
+            - 规则2
+            - 您
