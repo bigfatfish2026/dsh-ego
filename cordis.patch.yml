@@ -46,6 +46,10 @@
         # 跑完 nextRunAt 不动，正常排期该什么时候还什么时候
         # forceTriggerPath 默认 ~/.dsh-ego/force，要换就写绝对路径
         forceIntervalMs: 15000
+        # 每次重启、插件起来后跟用户说一句「醒了」（每进程一次，走跟 ask 同一条 followup）
+        announceOnStart: true
+        # 兜底等待上限：等 agents 就绪信号最多等 10 秒，到点按老路发一次并 warn（不再抖动）
+        announceDelayMs: 10000
         proposer:
           enabled: true
           # 留空 = 用宿主自己的默认路由；要指定就填你的服务商和模型名

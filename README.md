@@ -31,6 +31,18 @@ touch ~/.dsh-ego/force
 
 新增配置项要重启宿主才生效。
 
+## 开机自报
+
+每次宿主重启、插件起来后，等 `agents` 服务就绪**且目标会话真在活表**（`ctx.agents.get()` 查得到、没在忙）就立刻往主会话 `followup` 一句，让用户知道它醒了。不用 `setTimeout` 猜时间：时机来自 Cordis 的 `internal/service` 事件，插件安装时先探一次（agents 可能比 ego 早挂、事件已错过），之后每来一次 agents 就绪事件再试。
+
+- 走的是跟裁决器 `ask` **完全同一条** `followup` 路：`dryRun` 只记日志、`privateOnly` 照旧判、目标会话不在活表就先存进 `pendingSayQueue`；
+- 每进程只成功报一次；`targetSession` 还没学到（state 里也没有）就先等，学不到就记一行日志不发，绝不自己造一个假会话；
+- **有上限的兜底**：等够 `announceDelayMs`（默认 10 秒）还没发出去，就按老路发一次，并 warn 一条写明「走了兜底」——宿主哪天不给 `agents` 就绪事件（或事件早于 ego 加载错过）也不许静默不发。就绪事件和兜底只发一条：任一边成功/试过就收口（`lib/announce-gate.js`）；
+- **目标会话不在活表时事件来了也不发**，继续等兜底：宿主重启后 `sessions` 表是空的，主会话的 agent 要等第一条入站消息才会 `resume`（`getOrCreate → openSession`），在那之前 `ctx.agents.get()` 查不到，出站路由也没有能认的 record。兜底发的时候如果还是这样，话先落 `pendingSayQueue`，等主会话下一次活跃时补：学习监听一收到用户的私聊消息就起一个 2 分钟的补发盯梢（3 秒一次），主会话这一轮跑完变 idle 立刻发；每分钟那一拍照旧兜底；
+- 发出去的文本是「版本号 + 一句醒来的短指令」：`dsh-ego 1.0.0 刚重启完，先看有没有该验的事，有就去做，没有就跟用户打句招呼，短。` 前两行框提示（「自己心里冒出来的念头」「这是你自己开的一轮」）照旧，第三段就是这句。**不写「下一拍」**：那个时间是插件加载那一刻算的旧值，排期一变就成了假话；
+- 日志里「给主会话的指令」和「实际文本」分两条记，别把内部指令混在一起；
+- 只在启动那一次发，正常 `tick` 不碰它。
+
 ## 三个结果
 
 | 裁决 | 做什么 | 用户看得见吗 |
@@ -90,6 +102,8 @@ touch ~/.dsh-ego/force
 | `logPath` | `~/.dsh-ego/dsh-ego.log` | 日志，一条一行，别指望它自动轮转 |
 | `forceTriggerPath` | `~/.dsh-ego/force` | 调试用：这个文件一出现就立刻跑一拍（见上节） |
 | `forceIntervalMs` | `15000` | 多久看一眼上面那个文件（15 秒），`unref` 掉不拦进程退出 |
+| `announceOnStart` | `true` | 每次重启后跟用户说一句「醒了」，每进程一次（见上节） |
+| `announceDelayMs` | `10000` | 兜底等待上限：等 `agents` 就绪信号最多等这么久，到点按老路发一次并 warn。名字是历史包袱，不再抖动 |
 | `proposer.enabled` | `true` | 提议器开关 |
 | `proposer.provider` | `''` | 空串 = 用宿主自己的默认路由；要指定就填服务商 |
 | `proposer.model` | `''` | 同上，填模型名 |
