@@ -50,6 +50,9 @@
         announceOnStart: true
         # 兜底等待上限：等 agents 就绪信号最多等 10 秒，到点按老路发一次并 warn（不再抖动）
         announceDelayMs: 10000
+        # 开机自报整句模板（可选）：不写就用插件默认的同一句。
+        # {version} 换成插件版本号；想换人称、改语气或整句重写都行，例如：
+        # announceTemplate: 'dsh-ego {version} 刚重启完，先看有没有该验的事，有就去做，没有就跟用户打句招呼，短。'
         proposer:
           enabled: true
           # 留空 = 用宿主自己的默认路由；要指定就填你的服务商和模型名

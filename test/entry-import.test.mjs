@@ -87,3 +87,29 @@ test('编译产物 lib/index.js 能被真实 import，插件结构正常（0.1.6
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test('announceTemplate 的 schema：默认值、自定义整句生效、非法值在入口就拒', async () => {
+  const depsRoot = hostDepsRoot();
+  assert.ok(depsRoot, '找不到宿主依赖；设 DSH_EGO_HOST_DEPS 指向宿主的 node_modules');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-ego-announce-'));
+  try {
+    const mod = await import(stageEntry(depsRoot, tmp));
+    const { DEFAULT_ANNOUNCE_TEMPLATE } = await import(
+      pathToFileURL(path.join(tmp, 'lib', 'announce.js')).href
+    );
+    assert.equal(
+      mod.Config({}).announceTemplate,
+      DEFAULT_ANNOUNCE_TEMPLATE,
+      '不配就走默认整句',
+    );
+    const own = 'dsh-ego {version} 刚重启完，没有就跟主人打句招呼，短。';
+    assert.equal(mod.Config({ announceTemplate: own }).announceTemplate, own, '整句可换，不只是换人称');
+    // schemastery 先跑 pattern 再跑长度：空串报的是 pattern 那条
+    assert.throws(() => mod.Config({ announceTemplate: '' }), /length >= 1|match regexp/, '空串拒');
+    assert.throws(() => mod.Config({ announceTemplate: '   ' }), /match regexp/, '纯空白拒');
+    assert.throws(() => mod.Config({ announceTemplate: 'x'.repeat(501) }), /length <= 500/, '超长拒');
+    assert.throws(() => mod.Config({ announceTemplate: 1 }), /expected string/, '非字符串拒');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});

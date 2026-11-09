@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import {
   ANNOUNCE_INSTRUCTION,
   DEFAULT_ANNOUNCE_DELAY_MS,
+  DEFAULT_ANNOUNCE_TEMPLATE,
   announceWaitMs,
   buildAnnounceLog,
   buildAnnounceText,
@@ -129,11 +130,12 @@ test('文本是干净的事实 + 一句短指令，不把内部指令原样带�
   assert.ok(!buildAnnounceText({ version: '0.1.8', nextRun: '11-08 19:04' }).includes('下一拍'));
 });
 
-test('日志把「给主会话的指令」和「实际文本」分成两条', () => {
+test('日志把「配置的模板」和「实际文本」分成两条', () => {
   const text = buildAnnounceText(FACTS);
   const lines = buildAnnounceLog(text);
   assert.equal(lines.length, 2);
-  assert.match(lines[0], /^开机自报：给主会话的指令 = 刚重启完，先看有没有该验的事，有就去做，没有就跟用户打句招呼，短。$/);
+  assert.equal(lines[0], `开机自报：给主会话的指令 = ${DEFAULT_ANNOUNCE_TEMPLATE}`);
+  assert.ok(lines[0].includes('{version}'), '模板行要留占位符原文，排障时能看出配的是什么');
   assert.match(lines[1], /^开机自报：实际文本 = dsh-ego 0\.1\.3 刚重启完/);
   assert.ok(!lines[0].includes('实际文本'));
   assert.ok(!lines[1].includes('给主会话的指令'));
@@ -151,6 +153,51 @@ test('成功发出去时，日志里两行都在，且没有把旧指令混进�
   assert.ok(lines.some((l) => l.startsWith('开机自报：给主会话的指令 =')));
   assert.ok(lines.some((l) => l.startsWith('开机自报：实际文本 =')));
   assert.ok(!lines.some((l) => l.includes('跟用户说一句上线的话')));
+});
+
+test('不配模板就走默认：整句和版本号拼法跟以前一样', () => {
+  assert.equal(DEFAULT_ANNOUNCE_TEMPLATE, `dsh-ego {version} ${ANNOUNCE_INSTRUCTION}`);
+  assert.equal(buildAnnounceText(FACTS), buildAnnounceText(FACTS, DEFAULT_ANNOUNCE_TEMPLATE));
+  assert.equal(buildAnnounceText(FACTS), `dsh-ego 0.1.3 ${ANNOUNCE_INSTRUCTION}`);
+});
+
+test('配了整句就整句生效：能只换人称，也能完全不提版本号', () => {
+  const own = 'dsh-ego {version} 刚重启完，没有就跟主人打句招呼，短。';
+  assert.equal(buildAnnounceText(FACTS, own), 'dsh-ego 0.1.3 刚重启完，没有就跟主人打句招呼，短。');
+  const noVersion = '醒了，去看看有没有该验的事。';
+  assert.equal(buildAnnounceText(FACTS, noVersion), noVersion, '模板里没有占位符就原样发');
+  assert.equal(buildAnnounceText(FACTS, '  '), `dsh-ego 0.1.3 ${ANNOUNCE_INSTRUCTION}`, '空白模板退回默认，不许发空话');
+  assert.equal(buildAnnounceText(FACTS, undefined), `dsh-ego 0.1.3 ${ANNOUNCE_INSTRUCTION}`);
+});
+
+test('占位符替换版本号：出现几次换几次，版本为空不留双空格', () => {
+  assert.equal(buildAnnounceText({ version: '9.9.9' }, 'v{version} / {version}'), 'v9.9.9 / 9.9.9');
+  assert.equal(buildAnnounceText({}, 'dsh-ego {version} 刚重启完'), 'dsh-ego 刚重启完');
+  assert.equal(
+    buildAnnounceText({ version: '1.0.0' }, 'dsh-ego {version} 刚重启完'),
+    'dsh-ego 1.0.0 刚重启完',
+  );
+  assert.equal(buildAnnounceText(FACTS, '{version}'), '0.1.3');
+  assert.equal(buildAnnounceText(FACTS, '{other}'), '{other}', '不认识的占位符原样留着，不静默吃掉');
+});
+
+test('自报器也认模板：配的整句真的从 send 出去，日志里是模板原文', async () => {
+  const sent = [];
+  const lines = [];
+  const announcer = createAnnouncer({
+    targetId: () => 'sess-abc',
+    send: async (text) => {
+      sent.push(text);
+      return { ok: true };
+    },
+    log: (line) => lines.push(line),
+    facts: () => FACTS,
+    template: 'dsh-ego {version} 刚重启完，没有就跟主人打句招呼，短。',
+  });
+  assert.equal((await announcer.announce()).ok, true);
+  assert.deepEqual(sent, ['dsh-ego 0.1.3 刚重启完，没有就跟主人打句招呼，短。']);
+  assert.ok(lines.some((l) => l.includes('{version}')), '日志第一行留模板原文');
+  assert.ok(lines.some((l) => l.includes('dsh-ego 0.1.3 刚重启完')), '日志第二行是实际文本');
 });
 
 test('兜底上限：默认 10 秒、不再抖动；非法值退回默认，0 表示立刻兜底', () => {

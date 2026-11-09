@@ -45,6 +45,17 @@ test('reasoningEffort：两段都能配，落进 agentOptions；不填就不传'
   assert.ok(patch.includes('# reasoningEffort: low'), 'patch 里给一行注释示例，不写死值');
 });
 
+test('announceTemplate：schema 校验、DEFAULTS、patch 示例三处都在', () => {
+  assert.match(
+    index,
+    /announceTemplate: z\.string\(\)\.min\(1\)\.max\(500\)\.pattern\(\/\\S\/\)/,
+    'schema 要限长度并拒纯空白',
+  );
+  assert.match(index, /announceTemplate: DEFAULT_ANNOUNCE_TEMPLATE/, 'DEFAULTS 也要有一份，loader 不走 schema 时兜底');
+  assert.match(index, /template: cfg\.announceTemplate/, '配置要真接进自报器，别只写在 schema 里');
+  assert.ok(patch.includes('# announceTemplate:'), '插件自带 patch 里给一行注释示例（可选）');
+});
+
 test('插件自带 patch 也不设上限（它会覆盖代码默认值）', () => {
   const values = [...patch.matchAll(/^\s*maxTokens:\s*(\S+)\s*$/gm)].map((m) => m[1]);
   assert.deepEqual(values, ['0', '0'], `实际：${values.join(',')}`);
