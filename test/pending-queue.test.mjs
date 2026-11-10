@@ -14,6 +14,7 @@ import {
   enqueuePending,
   findPendingTicketByContent,
   hasPendingItems,
+  hasPendingText,
   migrateLegacyPending,
   pendingCount,
   pendingHead,
@@ -194,4 +195,16 @@ test('重启往返：队列和 id 序号都从 state 文件里读回来', () => 
   const next = enqueuePending(back, 'say', { text: '第三句', at: T0 + 2 * MIN });
   assert.equal(next.id, 'p3', '重启后 id 接着数，不重号');
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('按正文找在不在队列里：ack 掉就不在，同文本入队合并后仍只算在', () => {
+  const state = defaultState();
+  assert.equal(hasPendingText(state, 'say', '醒了'), false, '空队列当然没有');
+  enqueuePending(state, 'say', { text: '醒了', at: T0 });
+  enqueuePending(state, 'say', { text: '醒了', at: T0 + MIN });
+  assert.equal(hasPendingText(state, 'say', '醒了'), true);
+  assert.equal(pendingCount(state, 'say'), 1, '同文本只留一条');
+  assert.equal(hasPendingText(state, 'say', '别的话'), false);
+  ackPendingByKey(state, 'say', { text: '醒了' });
+  assert.equal(hasPendingText(state, 'say', '醒了'), false, '发成功 ack 之后就算补完了');
 });

@@ -97,6 +97,23 @@ test('send 失败不置「已报」：下一轮还能再试', async () => {
   assert.equal(sends, 2);
 });
 
+test('send 说 pending（话已排进队列）：带 queued 标记，且不算「已报」', async () => {
+  const lines = [];
+  const announcer = createAnnouncer({
+    targetId: () => 'sess-abc',
+    send: async () => ({ ok: false, pending: true, detail: '会话不在活表' }),
+    log: (line) => lines.push(line),
+    facts: () => FACTS,
+  });
+  const result = await announcer.announce();
+  assert.equal(result.ok, false);
+  assert.equal(result.queued, true, '闸门要靠这个标记开补发盯梢');
+  assert.equal(result.pending, true);
+  assert.equal(result.text, buildAnnounceText(FACTS), '补发盯梢要靠 text 认队列里那条');
+  assert.equal(announcer.sent, false, '没真发出去就不许置「已报」');
+  assert.ok(lines.some((l) => l.includes('已排进待发队列')));
+});
+
 test('send 抛错也不崩，记日志', async () => {
   const lines = [];
   const announcer = createAnnouncer({

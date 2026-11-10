@@ -45,6 +45,7 @@ function makeGate(overrides = {}) {
         sends.push('sent');
         return { ok: true };
       }),
+    onQueued: overrides.onQueued ?? (() => {}),
     log: (line) => lines.push(line),
     warn: (line) => warns.push(line),
     setTimeout: clock.setTimeout,
@@ -205,4 +206,30 @@ test('dispose 之后事件和兜底都不再触发', async () => {
   gate.noteReady('agents 服务');
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(sends.length, 0);
+});
+
+test('兜底没发出去但话已排进队列：交给 onQueued 开补发盯梢，自己收口不再发第二条', async () => {
+  const queued = [];
+  const { gate, clock } = makeGate({
+    trySend: async () => ({ ok: false, queued: true, pending: true, text: '醒了', reason: '会话不在活表' }),
+    onQueued: (result) => queued.push(result),
+  });
+  gate.startFallback();
+  clock.fire();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(queued.length, 1, '兜底 queued 的结果要交给补发盯梢');
+  assert.equal(queued[0].text, '醒了');
+  assert.equal(gate.settled, true, '闸门自己照旧收口，补发只走队列');
+  assert.equal(clock.pending(), 0, '闸门不再挂 timer');
+});
+
+test('正常路径不受影响：就绪即发成功，onQueued 一次都不调', async () => {
+  const queued = [];
+  const { gate, sends } = makeGate({ onQueued: (result) => queued.push(result) });
+  gate.startFallback();
+  assert.equal(gate.noteReady('agents 服务'), true);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(sends.length, 1, '正常路径还是只发一条');
+  assert.equal(queued.length, 0, '没排队列就不该开补发盯梢');
+  assert.equal(gate.settled, true);
 });
