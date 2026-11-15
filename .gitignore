@@ -1,0 +1,16 @@
+node_modules/
+*.log
+*.state.json
+*.jsonl
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+*.bak
+*.bak2
+logs/
+coverage/
+.dsh-ego/
+.DS_Store

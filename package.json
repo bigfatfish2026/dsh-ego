@@ -1,0 +1,46 @@
+{
+  "name": "dsh-ego",
+  "version": "1.0.0",
+  "description": "主动念头两段式：提议器 agent 想出点子，终审 agent 四选一（无动作 / 问用户 / 直接开票 / 打回重写），没动作时用户什么都看不见",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "files": [
+    "lib/**/*",
+    "scripts/**/*",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "license": "MIT",
+  "author": "bigfatfish2026",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bigfatfish2026/dsh-ego.git"
+  },
+  "homepage": "https://github.com/bigfatfish2026/dsh-ego#readme",
+  "bugs": {
+    "url": "https://github.com/bigfatfish2026/dsh-ego/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "proactive",
+    "agent",
+    "assistant"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/schemastery": "*",
+    "@deepseek-ai/dsh-tools": "*"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

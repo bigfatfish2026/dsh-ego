@@ -1,0 +1,230 @@
+# dsh-ego — 主动念头（两段式）
+#
+# 每个整点后 0~delayMaxMinutes 分钟之间随机醒一次，先掷骰子，掷中才干活：
+#   1. 提议器 agent（只读工具）想一个具体点子；
+#   2. 终审 agent（独立上下文，只看点子和理由）四选一：
+#        silent 什么都不做（用户看不见）/ ask 跟用户说一句 / do 直接开票 / rewrite 打回重写。
+# 23:40-08:00 安静时段、峰价时段（offPeakOnly）不醒。
+#
+# 以下全是默认值，用户改这里就生效；插件里 DEFAULTS 只做兜底。
+# 没写的键一律用插件默认值（补丁按整行替换，不做深合并）：只写你想改的那几行也合法。
+- insert:
+    - id: dsh-ego
+      name: 'dsh-ego'
+      config:
+        enabled: true
+        dryRun: false
+        # 整点后 0~8 分钟随机醒（别让用户看出这是定时器）
+        delayMaxMinutes: 8
+        # 「多久判一次」的调度周期（分钟）：默认 60 = 每小时一拍，与老行为一致。
+        # 只收 1~60 且能整除 60 的整数；写了别的值回落 60 并写一行日志。
+        # ⚠ 这是真间隔：调成 10 就是每 10 分钟真判一次，命中线照旧，所以实际干活会明显变勤；
+        # 想保持原来的节奏就别动它。随机上限会被夹到「周期 - 1」分钟。
+        tickIntervalMinutes: 60
+        # 票台闸：dispatcher 票台上只要有一张 open / running / waiting / blocked 的票，
+        # 这一拍就直接轮空（不提议、不开票、不发消息），只记日志和 state.busySkips。
+        # 查不到票台（服务不在、库打不开）也按「不空」保守跳过。
+        skipWhenTicketsBusy: true
+        # 命中线 35%：没掷中什么都不做，一分钟就过去了
+        diceProbability: 0.35
+        offPeakOnly: true
+        # 这些日期算谷价（YYYY-MM-DD），跟 offPeakOnly 一起用
+        holidays: []
+        # 23.66 = 23:40（小数小时，支持到分钟）
+        quietStart: 23.66
+        quietEnd: 8
+        privateOnly: true
+        # 空串 = 等用户在私聊里说一句，插件自己学
+        targetSession: ''
+        # 发不出去/开不了票时先存着，每拍重试，超时就丢
+        pendingTtlMinutes: 30
+        # 开票工具的调用上限
+        openTimeoutMs: 30000
+        # 连续失败 3 拍，下一拍推后 60 分钟
+        maxFailStreak: 3
+        backoffMinutes: 60
+        # 三个路径不写就用插件默认（os.homedir() 拼出来的绝对路径，不受当前目录影响）：
+        #   qqPrefsPath  -> ~/.dsh-ego/model-prefs.json  聊天前端的模型偏好文件
+        #   statePath    -> ~/.dsh-ego/state.json
+        #   logPath      -> ~/.dsh-ego/dsh-ego.log
+        # 要换位置就自己写绝对路径；前端不提供偏好文件也没关系，读不到会退回空偏好。
+        # 否决台账（裁决器·第二道关）：用户明确否过的方向，
+        # 一行一条 JSONL，append-only；gate 之后、judge 之前查，命中这一拍直接 silent。
+        # 默认 ~/.dsh-ego/veto.jsonl；要换位置写 vetoPath（DSH_EGO_ROOT 可改工作区根）
+        vetoEnabled: true
+        # 窗口 60 天写死在 lib/veto.js（规则第七节，不改配置）；
+        # 不设容量上限、不做自动清理/归档（规则第十四节）：文件只增，读侧按 60 天过滤。
+        # 手工清：删掉或清空这个文件即可，下一拍自动当空账，不用重启。
+        # vetoPath: ~/.dsh-ego/veto.jsonl
+        # 方案落盘（改 gate 前的重放回归）：每版 stage2 plan 一行 JSONL，
+        # 超 20MB / 3000 行自动改名成 .1；默认 ~/.dsh-ego/plans.jsonl，
+        # 可用 plansPath 或 DSH_EGO_PLANS_PATH 换位置。重放：node scripts/replay.js（见 README「想法重放」）
+        #   plansPath: ~/.dsh-ego/plans.jsonl
+        # 偏好服务名：前端在 ctx 上挂了别的名字就改这里；没有这个服务会退回读文件
+        prefsService: 'qqbot/prefs'
+        # 调试用：手动催一拍。touch 这个文件，15 秒内立刻跑一拍：
+        # 跳过骰子、安静时段、峰价窗口和 nextRunAt 排期；privateOnly 和目标会话照旧检查；
+        # 跑完 nextRunAt 不动，正常排期该什么时候还什么时候
+        # forceTriggerPath 默认 ~/.dsh-ego/force，要换就写绝对路径
+        forceIntervalMs: 15000
+        # 每次重启、插件起来后跟用户说一句「醒了」（每进程一次，走跟 ask 同一条 followup）
+        announceOnStart: true
+        # 兜底等待上限：等 agents 就绪信号最多等 10 秒，到点按老路发一次并 warn（不再抖动）
+        announceDelayMs: 10000
+        # 兜底没发出去后的补发窗口：窗口内每秒看一眼目标会话活没活，活了立刻补发一次
+        # （话在 pendingSayQueue 里，补发成功会 ack，只发一次；0 = 不盯，交给每拍重试）
+        announceRetryWindowMs: 30000
+        # 开机自报整句模板（可选）：不写就用插件默认的同一句。
+        # {version} 换成插件版本号；想换人称、改语气或整句重写都行，例如：
+        # announceTemplate: 'dsh-ego {version} 刚重启完，先看有没有该验的事，有就去做，没有就跟用户打句招呼，短。'
+        proposer:
+          enabled: true
+          # 留空 = 用宿主自己的默认路由；要指定就填你的服务商和模型名
+          provider: ''
+          model: ''
+          # stage1 那一档的输出预算：默认 2000，区间 2000–16000（越界夹边界并 warn）。
+          # 现在 stage1 是纯规则枚举、0 次模型调用，这一项只是留好的接口。
+          # 0 是旧的「不限」写法，现在按默认 2000 归一，别再写 0。
+          maxTokens: 2000
+          # 推理档位 low / high / max，不填就走服务端默认；
+          # 写了别的值 schema 拒，routeOptions 里还会再过滤一次
+          # reasoningEffort: low
+          timeoutMs: 600000
+          # 只读：想点子不许动手
+          allow:
+            - read
+            - glob
+            - grep
+            - chat_recall
+            - memory_recall
+            - memory_entity
+            - sbi_search
+            - sbi_status
+            - web_search
+            - web_fetch
+            - host_status
+            - host_alerts
+            - read_image
+          # stage1 规则枚举的候选上限（原语 × 对象 组合最多列这么多条）
+          maxCandidates: 24
+          # stage2 的输出预算：默认 8000，区间 2000–16000（越界夹边界并 warn）。
+          # stage2 要输出 object/evidence/plan/intent 一大串字段，所以比 stage1 宽。
+          stage2MaxTokens: 8000
+          # 打回重写最多几次（默认 3，允许 1~5；越界夹到边界并 warn，不拒加载）
+          maxRewrite: 3
+          # 素材池：写进提示词的思考方向，开源版默认这 9 条通用方向（最后一条是优化插件自己）。
+          # 每条一个对象，motivation 是动机档位（backlog / hygiene / sync / social / memory / status / self）；
+          # 档位写错不拒加载，那条会被剔掉并写日志。这里整组可换，写了就以你的为准。
+          materials:
+            - text: 手上还没收尾的待办、说好要做的事
+              motivation: backlog
+            - text: 挑一个本地仓库翻翻，看有没有明显的 bug、跑不过的测试、过期的 TODO
+              motivation: hygiene
+            - text: 本地仓库和远端是不是同步（有没有该推的提交、该拉的提交）
+              motivation: sync
+            - text: yaml / 配置里有没有已经没人用的项、重复的段、注释掉的死配置
+              motivation: hygiene
+            - text: 陈旧的备份、日志、临时文件是不是该清了（只许提，别动手）
+              motivation: hygiene
+            - text: 邮箱 / 消息通知里有没有攒着没看的东西
+              motivation: social
+            - text: 记忆里有没有新条目、有没有互相矛盾的
+              motivation: memory
+            - text: 宿主机器的状态：温度、内存、磁盘、服务、日志里有没有异常
+              motivation: status
+            - text: 优化 dsh-ego 插件自己：必须写成 文件路径:行号 + 大概改 3~8 行 + 要跑的那两三个测试（写明 node --test 加测试文件），禁止「整理一下代码」
+              motivation: self
+          # 原语开关：关掉的原语整条不进候选（规则第三节八条）
+          primitives:
+            inspect: true
+            editFile: true
+            editConfig: true
+            service: false      # 默认不动服务
+            memoryWrite: false  # 默认不写记忆，要写走票
+            delete: true        # 只许提，落到票仍是 none → 降级 ask
+            outbound: false     # 发消息归别的插件
+            externalResearch: true
+          # 对象类别开关（规则第四节）
+          objects:
+            files: true
+            config: true
+            service: true
+            memory: true
+            ticket: true
+            session: true
+            externalDoc: true
+            externalRepo: true
+          # 外部检索：缓存 TTL 与单拍抓取上限
+          research:
+            ttlDays: 7
+            maxFetchesPerRound: 3
+            peakOff: true     # 峰价时段禁网（force 触发时由 gate 再判一次）
+          # 读建议（可选）：候选行末尾「读建议：#C0N」指针指向的那份表（提示词末尾单列，
+          # 不占候选行预算）。默认由插件运行时枚举真实存在的路径（扫 ~/.dsh/profiles/*/cordis.patch.yml、
+          # $DSH_EGO_ROOT/plugins/*/cordis.patch.yml、
+          # ~/.dsh/settings.yaml、$DSH_EGO_ROOT/logs/*.log；每类最多 5 条，进程内 60 秒缓存一次），
+          # 别在这里维护静态表，会过期。要覆盖就按「对象类别 → 字符串数组」写，
+          # 配了的类整类替换枚举结果，没配的类照旧枚举。
+          # 非法值（不认识的类别、不是数组、非字符串项）会被忽略并写日志，不拒加载。
+          # readHints:
+          #   config:
+          #     - ~/.dsh/settings.yaml
+          #   files:
+          #     - ~/fatfish/logs/app.log
+          #   service:
+          #     - 用 host_status 看 CPU/内存/磁盘/温度这几栏，unit 列表拿不到
+        judge:
+          enabled: true
+          # 留空 = 用宿主自己的默认路由（同 proposer）
+          provider: ''
+          model: ''
+          # 终审的输出预算：默认 4000，区间 1000–8000（越界夹边界并 warn）。
+          # 曾有一拍没给上限，被服务端默认截在 870 字符、JSON 没闭合，judgeFail。
+          maxTokens: 4000
+          # 推理档位，不填走服务端默认（同 proposer）
+          # reasoningEffort: low
+          timeoutMs: 180000
+          # 终审只看记忆，连文件都不用自己翻
+          allow:
+            - read
+            - chat_recall
+            - memory_recall
+            - memory_entity
+          # ask 文案的长度上下限（按字符/码点数，约 50~90 个汉字）；要改就一起改提示词
+          askMinChars: 60
+          askMaxChars: 160
+          # 出现这些词就判这一拍失败：黑话、内部术语，用户看不懂
+          forbiddenWords:
+            - 死账
+            - 下刀
+            - 捞不回来
+            - 开刀
+            - 动刀
+            - 按照规则
+            - 按规则
+            - 规则 2
+            - 规则2
+            - 您
+
+        # ── 裁决器·arbiter 关（第三关）────────────────────────────────────────────
+        # gate 是纯代码的硬语法关，有些条目它判不了：非本地类对象没有查询源、
+        # 锚点不是「文件:行号」形状、数字出处认不出来、素材没有文件锚点。
+        # 这些以前只记 unsupported 就放行（等于看出来也不吭声），现在打包给 arbiter 逐条判：
+        #   pass 放行 / reject 整拍不做 / downgrade 打回重写。
+        # 链条：gate（判死的）→ veto（台账）→ arbiter（灰色）→ judge（整份方案值不值得做）。
+        # 失败（超时 / 坏 JSON）一律降级：这些条目按 unsupported 放行，不拒整拍。
+        arbiter:
+          enabled: true
+          # 留空 = 用宿主自己的默认路由（同 proposer / judge）
+          provider: ''
+          model: ''
+          # 只回一段小 JSON：默认 1500，区间 500–4000（越界夹边界并 warn）
+          maxTokens: 1500
+          # 推理档位 low / high / max，默认 low：逐条判「该不该拦」，不用深想
+          reasoningEffort: low
+          timeoutMs: 120000
+          # 一次最多送几条：默认 8，超了按 GA 编号截断并记 arbiter_case:超 N 条已略
+          maxCases: 8
+          # 只给 read：让它能看一眼文件（判锚点合不合理），但只许看，不许改、不许开票、不许 exec
+          allow:
+            - read
