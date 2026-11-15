@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2600" height="2680"
+ viewBox="0 0 2600 2680" role="img" aria-labelledby="fig-title fig-desc">
+<title id="fig-title">dsh-ego 一拍：想法生成、三轮裁决、执行与归档</title>
+<desc id="fig-desc">三段数据流图。backlog 素材产出一个删除候选；三轮方案与证据复核依次经过 gate 与 arbiter；judge 判成只能问维护者；排队的问题被回答、补发、手工开票，执行时先备份再校验后删除，最后收尾归档。票号是真实运行记录，人称与会话 id 已脱敏。</desc>
+<defs>
+  <marker id="arrow-ink" viewBox="0 0 10 10" refX="9.1" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M 0.6 1.2 L 9.2 5 L 0.6 8.8 z" fill="#253247"/>
+  </marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9.1" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M 0.6 1.2 L 9.2 5 L 0.6 8.8 z" fill="#4778A8"/>
+  </marker>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9.1" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto">
+    <path d="M 0.6 1.2 L 9.2 5 L 0.6 8.8 z" fill="#7656A5"/>
+  </marker>
+  <marker id="arrow-muted" viewBox="0 0 10 10" refX="9.1" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M 0.6 1.2 L 9.2 5 L 0.6 8.8 z" fill="#66758A"/>
+  </marker>
+</defs>
+<rect x="0" y="0" width="2600" height="2680" fill="#FFFFFF"/>
+<rect x="60" y="70" width="2480" height="380" rx="15" ry="15" fill="#F4F6F9" stroke="#D5DDE7" stroke-width="1.5"/>
+<path d="M 82 88 L 2518 88" fill="none" stroke="#4778A8" stroke-width="3.4" stroke-linecap="round"/>
+<rect x="60" y="470" width="2480" height="1440" rx="15" ry="15" fill="#F4F6F9" stroke="#D5DDE7" stroke-width="1.5"/>
+<path d="M 82 488 L 2518 488" fill="none" stroke="#4778A8" stroke-width="3.4" stroke-linecap="round"/>
+<rect x="60" y="1930" width="2480" height="700" rx="15" ry="15" fill="#F4F6F9" stroke="#D5DDE7" stroke-width="1.5"/>
+<path d="M 82 1948 L 1232 1948" fill="none" stroke="#7656A5" stroke-width="3.4" stroke-linecap="round"/>
+<path d="M 1288 1948 L 2518 1948" fill="none" stroke="#7656A5" stroke-width="3.4" stroke-linecap="round"/>
+<path d="M 820 297 L 841.0 297.0 Q 850 297 850.0 306.0 L 850.0 673.0 Q 850 682 841.0 682.0 L 820 682" fill="none" stroke="#4778A8" stroke-width="2.5" stroke-dasharray="9 7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<path d="M 820 682 L 851.0 682.0 Q 860 682 860.0 673.0 L 860.0 666.0 Q 860 657 869.0 657.0 L 900 657" fill="none" stroke="#253247" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 1650 730 L 1650 770" fill="none" stroke="#253247" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 1650 990 L 1650.0 1001.0 Q 1650 1010 1641.0 1010.0 L 99.0 1010.0 Q 90 1010 90.0 1019.0 L 90.0 1113.5 Q 90 1122.5 99.0 1122.5 L 120 1122.5" fill="none" stroke="#4778A8" stroke-width="2.5" stroke-dasharray="9 7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<path d="M 820 1122.5 L 851.0 1122.5 Q 860 1122.5 860.0 1113.5 L 860.0 1109.0 Q 860 1100 869.0 1100.0 L 900 1100" fill="none" stroke="#253247" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 1650 1170 L 1650 1190" fill="none" stroke="#253247" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 1650 1410 L 1650.0 1431.0 Q 1650 1440 1641.0 1440.0 L 99.0 1440.0 Q 90 1440 90.0 1449.0 L 90.0 1566.0 Q 90 1575 99.0 1575.0 L 120 1575" fill="none" stroke="#4778A8" stroke-width="2.5" stroke-dasharray="9 7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<path d="M 820 1575 L 900 1572.5" fill="none" stroke="#253247" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 1650 1680 L 1650.0 1693.0 Q 1650 1702 1641.0 1702.0 L 1269.0 1702.0 Q 1260 1702 1260.0 1711.0 L 1260 1725" fill="none" stroke="#253247" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 1260 1885 L 1260 2070" fill="none" stroke="#7656A5" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<path d="M 1260 2220 L 1260.0 2231.0 Q 1260 2240 1251.0 2240.0 L 345.0 2240.0 Q 336 2240 336.0 2249.0 L 336 2260" fill="none" stroke="#66758A" stroke-width="2.0" stroke-dasharray="6 5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-muted)"/>
+<path d="M 552 2410.0 L 582 2410.0" fill="none" stroke="#253247" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 1014 2410.0 L 1044 2410.0" fill="none" stroke="#253247" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 1476 2410.0 L 1506 2410.0" fill="none" stroke="#7656A5" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<path d="M 1938 2410.0 L 1968 2410.0" fill="none" stroke="#7656A5" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<rect x="120" y="160" width="700" height="275" rx="9" ry="9" fill="#EEF4FA" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 136 171 L 804 171" fill="none" stroke="#4778A8" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="120" y="600" width="700" height="165" rx="9" ry="9" fill="#EEF4FA" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 136 611 L 804 611" fill="none" stroke="#4778A8" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="120" y="1045" width="700" height="155" rx="9" ry="9" fill="#EEF4FA" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 136 1056 L 804 1056" fill="none" stroke="#4778A8" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="120" y="1480" width="700" height="190" rx="9" ry="9" fill="#EEF4FA" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 136 1491 L 804 1491" fill="none" stroke="#4778A8" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="900" y="585" width="1500" height="145" rx="9" ry="9" fill="#FBF5EC" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 916 596 L 2384 596" fill="none" stroke="#A9773F" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="900" y="1030" width="1500" height="140" rx="9" ry="9" fill="#FBF5EC" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 916 1041 L 2384 1041" fill="none" stroke="#A9773F" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="900" y="770" width="1500" height="220" rx="9" ry="9" fill="#EEF5F0" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 916 781 L 2384 781" fill="none" stroke="#568267" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="900" y="1190" width="1500" height="220" rx="9" ry="9" fill="#EEF5F0" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 916 1201 L 2384 1201" fill="none" stroke="#568267" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="900" y="1465" width="1500" height="215" rx="9" ry="9" fill="#EEF5F0" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 916 1476 L 2384 1476" fill="none" stroke="#568267" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="120" y="1725" width="2280" height="160" rx="9" ry="9" fill="#F4F0FA" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 136 1736 L 2384 1736" fill="none" stroke="#7656A5" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="120" y="2070" width="2280" height="150" rx="9" ry="9" fill="#F4F6F9" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 136 2081 L 2384 2081" fill="none" stroke="#C4CFDD" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="120" y="2260" width="432" height="300" rx="9" ry="9" fill="#F4F6F9" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 136 2271 L 536 2271" fill="none" stroke="#C4CFDD" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="582" y="2260" width="432" height="300" rx="9" ry="9" fill="#F4F6F9" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 598 2271 L 998 2271" fill="none" stroke="#C4CFDD" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="1044" y="2260" width="432" height="300" rx="9" ry="9" fill="#F4F6F9" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 1060 2271 L 1460 2271" fill="none" stroke="#C4CFDD" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="1506" y="2260" width="432" height="300" rx="9" ry="9" fill="#F4F0FA" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 1522 2271 L 1922 2271" fill="none" stroke="#7656A5" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="1968" y="2260" width="432" height="300" rx="9" ry="9" fill="#EEF5F0" stroke="#D5DDE7" stroke-width="1.3"/>
+<path d="M 1984 2271 L 2384 2271" fill="none" stroke="#568267" stroke-width="3.2" stroke-linecap="round"/>
+<text x="88" y="134" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="29" font-weight="700" fill="#253247" text-anchor="start">01  想法生成</text>
+<text x="89" y="164" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#66758A" text-anchor="start">stage1 · 从合法组合中选取候选动作</text>
+<text x="88" y="534" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="29" font-weight="700" fill="#253247" text-anchor="start">02  提议器 × 裁决器迭代</text>
+<text x="89" y="564" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#66758A" text-anchor="start">三轮提议与证据复核；gate 降级后由 arbiter 复核，最终进入 judge</text>
+<text x="88" y="1994" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="29" font-weight="700" fill="#253247" text-anchor="start">03  执行器 · 执行与归档</text>
+<text x="89" y="2024" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="18" font-weight="400" fill="#66758A" text-anchor="start">问询补发、人工确认、工单执行与状态收尾</text>
+<text x="144" y="203" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">05:17:55 · stage1</text>
+<text x="144" y="238" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#66758A" text-anchor="start">9 个合法组合</text>
+<text x="144" y="266" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#66758A" text-anchor="start">生成的想法：inspect files → delete files</text>
+<text x="144" y="294" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#66758A" text-anchor="start">动机：backlog</text>
+<text x="144" y="322" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#66758A" text-anchor="start">种子：「手上还没收尾的待办、</text>
+<text x="144" y="350" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#66758A" text-anchor="start">　　　说好要做的事」</text>
+<text x="144" y="643" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">v1 · 05:18:38</text>
+<text x="144" y="678" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="20.5" font-weight="400" fill="#66758A" text-anchor="start">43.0 秒 · 4 turns</text>
+<text x="144" y="706" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="20.5" font-weight="400" fill="#66758A" text-anchor="start">工具 6 次（read 4 / glob 1）</text>
+<text x="144" y="734" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="20.5" font-weight="400" fill="#66758A" text-anchor="start">verdict: continue · 2 步 · estLines 2</text>
+<text x="144" y="1088" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">v2 · 05:18:57</text>
+<text x="144" y="1123" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="20.0" font-weight="400" fill="#66758A" text-anchor="start">10.0 秒 · 1 turn · 工具 0 次</text>
+<text x="144" y="1149" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="20.0" font-weight="400" fill="#66758A" text-anchor="start">没再读文件，纯改写</text>
+<text x="144" y="1175" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="20.0" font-weight="400" fill="#66758A" text-anchor="start">verdict: continue · estLines 2</text>
+<text x="144" y="1523" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">v3 · 05:19:19</text>
+<text x="144" y="1558" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.2" font-weight="400" fill="#66758A" text-anchor="start">8.3 秒 · 1 turn · 工具 0 次</text>
+<text x="144" y="1583" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.2" font-weight="400" fill="#66758A" text-anchor="start">ga_hits 无 · allowDo true · estLines 2</text>
+<text x="144" y="1608" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.2" font-weight="400" fill="#66758A" text-anchor="start">点子：清理 logs 下两份过期轮转：</text>
+<text x="144" y="1633" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.2" font-weight="400" fill="#66758A" text-anchor="start">pending_after_restart.log.1（11 行）</text>
+<text x="144" y="1658" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.2" font-weight="400" fill="#66758A" text-anchor="start">notify.log.1（1 行）</text>
+<text x="924" y="628" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">gate · GA7 打回，降级</text>
+<text x="924" y="663" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="20.5" font-weight="400" fill="#66758A" text-anchor="start">undo.howto 没命中 delete 的撤回模板；模板例：cp 到备份目录，再从备份拷回</text>
+<text x="924" y="1073" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">gate · GA6 打回，降级</text>
+<text x="924" y="1108" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="20.5" font-weight="400" fill="#66758A" text-anchor="start">reversibility 写宽了：候选默认档 none，方案写的是 manual</text>
+<text x="924" y="813" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">arbiter 1 · 05:18:47 · 9.5 秒</text>
+<text x="924" y="848" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.5" font-weight="400" fill="#66758A" text-anchor="start">送 2 条 · pass 2</text>
+<text x="924" y="878" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.5" font-weight="400" fill="#66758A" text-anchor="start">GA4：路径存在，第 1 行有内容，锚点没错；只是文件名带 .1，让 gate 不认形状</text>
+<text x="924" y="908" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.5" font-weight="400" fill="#66758A" text-anchor="start">GA17：两份待删文件与 step1.read、plan.files 完全对得上（11 行自检、1 行 timer 回显）</text>
+<text x="924" y="1233" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">arbiter 2 · 05:19:10 · 13.2 秒</text>
+<text x="924" y="1268" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.5" font-weight="400" fill="#66758A" text-anchor="start">送 2 条 · pass 2</text>
+<text x="924" y="1298" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.5" font-weight="400" fill="#66758A" text-anchor="start">GA4：路径与「文件:行号」形式相符，第 1 行确实是那份自检头</text>
+<text x="924" y="1328" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.5" font-weight="400" fill="#66758A" text-anchor="start">GA17：读了这两份文件，11 行与 1 行跟方案描述逐字对得上</text>
+<text x="924" y="1508" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">arbiter 3 · 05:19:36 · 17.0 秒</text>
+<text x="924" y="1543" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.0" font-weight="400" fill="#66758A" text-anchor="start">送 2 条 · pass 2</text>
+<text x="924" y="1573" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.0" font-weight="400" fill="#66758A" text-anchor="start">GA4：读到的确实是「文件:行号」，第二行开头就是 line 2；.1 后缀让 gate 认不出</text>
+<text x="924" y="1603" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.0" font-weight="400" fill="#66758A" text-anchor="start">GA17：step1.read、object.value、anchor、plan.files 三处同一对路径，11 行与 1 行一致</text>
+<text x="144" y="1768" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">judge · 05:19:42 · action = ask · ticket = null</text>
+<text x="144" y="1803" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="20.5" font-weight="400" fill="#66758A" text-anchor="start">删日志文件属于不可恢复操作；按裁决原则第 2 条，只能问维护者，不能自己开票。</text>
+<text x="144" y="1831" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="20.5" font-weight="400" fill="#66758A" text-anchor="start">重写共 2 次</text>
+<text x="144" y="2113" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">05:19:42 · pendingSayQueue</text>
+<text x="144" y="2148" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="20.0" font-weight="400" fill="#66758A" text-anchor="start">会话 &lt;session&gt; 正忙（running），先存着 → pendingSayQueue 编号 p25</text>
+<text x="144" y="2176" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="20.0" font-weight="400" fill="#66758A" text-anchor="start">ego_tick 摘要记成「失败 · 会话正忙」</text>
+<text x="144" y="2401.0" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">05:32:14 · 维护者回应</text>
+<text x="144" y="2440.0" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="19.0" font-weight="400" fill="#66758A" text-anchor="start">维护者在会话里先答了 do</text>
+<text x="606" y="2317.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">05:32:56.881 · 问话补发</text>
+<text x="606" y="2356.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.2" font-weight="400" fill="#66758A" text-anchor="start">晚 42 秒落地</text>
+<text x="606" y="2380.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.2" font-weight="400" fill="#66758A" text-anchor="start">logs 下两份过期轮转：</text>
+<text x="606" y="2404.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.2" font-weight="400" fill="#66758A" text-anchor="start">pending_after_restart.log.1（11 行）</text>
+<text x="606" y="2428.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.2" font-weight="400" fill="#66758A" text-anchor="start">notify.log.1（1 行）</text>
+<text x="606" y="2452.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.2" font-weight="400" fill="#66758A" text-anchor="start">都是 11 月 2 日的一次性记录；</text>
+<text x="606" y="2476.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.2" font-weight="400" fill="#66758A" text-anchor="start">同目录另有 152 份轮转</text>
+<text x="606" y="2500.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.2" font-weight="400" fill="#66758A" text-anchor="start">先备份到 .del-backup，再删除，行吗？</text>
+<text x="606" y="2524.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.2" font-weight="400" fill="#66758A" text-anchor="start">→ ackPendingByKey 销账，队列剩 0</text>
+<text x="1068" y="2363.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">05:34:36 · 主会话开票</text>
+<text x="1068" y="2402.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="18.0" font-weight="400" fill="#66758A" text-anchor="start">手工开票：</text>
+<text x="1068" y="2427.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="18.0" font-weight="400" fill="#66758A" text-anchor="start">t-mwd4368i-b5pa</text>
+<text x="1068" y="2452.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="18.0" font-weight="400" fill="#66758A" text-anchor="start">ego 这拍没开票，</text>
+<text x="1068" y="2477.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="18.0" font-weight="400" fill="#66758A" text-anchor="start">lastTicket 还是旧那张</text>
+<text x="1530" y="2317.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">执行 · 备份与校验</text>
+<text x="1530" y="2356.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">mkdir -p .del-backup</text>
+<text x="1530" y="2380.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">→ cp -p 两份</text>
+<text x="1530" y="2404.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">md5sum + cmp 逐字节一致</text>
+<text x="1530" y="2428.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">→ rm</text>
+<text x="1530" y="2452.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">pending_after_restart.log.1 · 981 B</text>
+<text x="1530" y="2476.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">md5 3360f18…</text>
+<text x="1530" y="2500.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">notify.log.1 · 91 B</text>
+<text x="1530" y="2524.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">md5 e853b13…</text>
+<text x="1992" y="2329.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">收尾 · 归档</text>
+<text x="1992" y="2368.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">logs 下 .log 31 个</text>
+<text x="1992" y="2392.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">轮转文件：152 → 150</text>
+<text x="1992" y="2416.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">state：pendingSayQueue []</text>
+<text x="1992" y="2440.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">pendingSeq 25</text>
+<text x="1992" y="2464.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">lastAskAt 13:32:56.878</text>
+<text x="1992" y="2488.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">plans.jsonl 第 17 行：evidence 四条，</text>
+<text x="1992" y="2512.5" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17.3" font-weight="400" fill="#66758A" text-anchor="start">文件名脱敏为 ***</text>
+<text x="850" y="995" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17" font-weight="600" fill="#4778A8" text-anchor="middle" stroke="#FFFFFF" stroke-linejoin="round" paint-order="stroke">改写后重新提交</text>
+<text x="850" y="1425" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17" font-weight="600" fill="#4778A8" text-anchor="middle" stroke="#FFFFFF" stroke-linejoin="round" paint-order="stroke">改写后重新提交</text>
+<text x="800" y="2225" font-family="'Noto Sans CJK SC', 'Noto Sans CJK JP', Arial, Helvetica, sans-serif" font-size="17" font-weight="600" fill="#66758A" text-anchor="middle" stroke="#FFFFFF" stroke-linejoin="round" paint-order="stroke">维护者回应</text>
+</svg>

@@ -464,3 +464,72 @@ arbiter_fail:超时｜2 条按 unsupported 放行
 ### 重放
 
 `lib/replay.js` 默认只重跑 gate + veto（纯代码、不花钱），`unsure` 落到 unsupported 留痕；传 `arbiter`（CLI 是 `--arbiter`）才会把 `unsure` 交给 `runArbiter` 判，再按 `mergeArbiterVerdicts` 的语义合并，`changed` 也按合并后的 reject / downgrade 算——arbiter 判 reject 或 downgrade 都算「变差」。这一步会真调模型、产生费用，所以默认关。
+
+## 醒来前的闸（顺序固定）
+
+每个周期起点（默认整点）后的 `0 ~ delayMaxMinutes` 分钟之间随机醒一次（默认 8 分钟内，别让用户摸出这是定时器）。周期由 `tickIntervalMinutes` 配，默认 60；调成 10 就是每 10 分钟判一次，命中线不变，实际干活会明显变勤。醒来之后依次过：
+
+1. `enabled` 为 true，且 `proposer.enabled` / `judge.enabled` 都开着；
+2. 不在安静时段（`quietStart` ~ `quietEnd`，默认 23:40 ~ 08:00，小数小时）；
+3. `offPeakOnly` 时不在峰价（工作日 09:00-12:00、14:00-18:00，`holidays` 里的日期算谷价）；
+4. 票台闸（`skipWhenTicketsBusy`，默认开）：dispatcher 票台上存在 open / running / waiting / blocked 任意一张票就轮空，查不到票台也按不空处理；只记一行 `[ego] 轮空：票台有 N 张未终态票（open/running/waiting/blocked）` 和 `state.busySkips` 计数；
+5. 掷骰子掷中（`diceProbability`，默认 35%）。
+
+任何一关不过就睡，不产生任何消息。两条不看整点：`retryAfterAt` 没到之前不干活（连败惩罚）；存着的 `pendingSayQueue` / `pendingTicketQueue` 每一拍都先试着补发/补开一次，一次一条，成功才出队。
+
+排期本身是一个一次性 `setTimeout`（`armWake`）推到「整点 + 随机」那个点，`nextRunAt` 只是记在状态里给人看和降级用。热加载、进程挂起、时钟跳变都可能把这个 timer 弄丢，所以有两道兜底：apply 收尾按已有 `nextRunAt` 重新 arm 一次；另有一条 25 秒的低频轮询（`lib/safety-poll.js`）盯着 `nextRunAt`，过期且没有在跑的拍就补一拍。它只读内存里的三个字段，不读盘、不碰服务句柄。
+
+手动催拍（`touch ~/.dsh-ego/force`）**跳过**骰子、安静时段、峰价窗口、`nextRunAt` 排期、`retryAfterAt`；**保留** `enabled`、`privateOnly`、必须有目标会话、同一时刻只跑一拍。跑完不动 `nextRunAt`，`failStreak` 按正常拍处理；日志里先找 `[debug]` 那两行，别把 debug 拍当成「它半夜自己醒了」。
+
+## ask 文案的硬规矩
+
+`ask` 是唯一会直接发到用户那边的一句话，三样缺一不可：**对象 + 数量**（哪张表 / 哪条路径 / 哪个服务，动多少条）、**为什么**（一句话讲清凭什么，带数字或依据）、**要用户定什么**（一个明确问句，做了会怎样、不做会怎样）。
+
+`lib/gate.js` 的 `validateAskText` 在解析时逐条查，不合格就整拍失败，宁可不发：
+
+- 默认 60~160 个**字符**（汉字、标点、字母、数字各算 1 个，约 50~90 个汉字）；上下限可配 `judge.askMinChars` / `judge.askMaxChars`；
+- 不许用「死账」「下刀」「捞不回来」「开刀」「动刀」这类黑话，不许说「按照规则 2」这种内部术语，不许叫用户「您」；禁词表可换 `judge.forbiddenWords`；
+- 文案里的数字必须来自提议器的 `idea` / `why`，不许自己编；
+- 只留一个问句，而且必须是**最后一句**；JSON 一次写完整闭合，附一个「写到一半断掉」的反例。
+
+口径是字符数不是汉字数：文案必须写清对象，路径、表名、时间、数字都占字符但不占汉字；给模型讲汉字数它数不准，代码也只能按码点查（`charLength`）。上限 160 够装一条路径加数字，下限 60 保住三要素。
+
+日志和诊断不切在 160：日志单行可以长（换行折成空格），超过 4000 字符才截断并写明「日志截断，原文 N 字符」；校验失败时记清被拦的是哪一项、原始长度、原文前 200 + 后 100，`parseDecisionReport` 会区分「JSON 没闭合 = 真截断」和「JSON 闭合但文案不合格 = 校验拦的」。
+
+## 否决台账（veto）
+
+台账是「用户已经表过态」的只读事实库，**提议器一个字都不看**——让它自己读台账会把「可能又被否」的候选悄悄删掉，候选越剪越窄，所以判断全放在裁决侧。
+
+文件默认 `~/.dsh-ego/veto.jsonl`（可用 `vetoPath` 或 `DSH_EGO_ROOT` 换位置），UTF-8、一行一条 JSON、append-only，不跟 `state.json` 放一起。人工/主会话在丢票那一刻写一行：方向否决写、技术失败不写、含糊按技术失败，不加自动来源标记；ego 的裁决器自己不调用写入，`recordVeto` 只是把归一路径、脱敏、字段上限收成一个函数。
+
+判据（窗口 60 天，按 `ticketId` 去重）：
+
+- V1 格对相同 + `objectNames` 有交集 → 拒；
+- V2 同 `objectKind` + `actionPrimitive` 被两张不同票否过 → 拒；
+- V3 同方向被三张不同票否过 → 拒，并打 `veto_escalate`，提醒「可能不是点子错，是素材或 gate 缺东西」；
+- 单段读没有动作原语，只走 V1。
+
+命中处置：这一拍不进 judge、不 rewrite、不涨 `failStreak`，`lastAction=silent`，跟 gate 拒一个待遇；日志是 `veto_hit:<combo|action|escalate>｜格对｜对象名｜时间`，跟 gate 的 `ga_hits` 分开数。judge 提示词里会拿到最近 5 条被否方向（60 天内、按票去重），撞上同方向只许输出 `silent`。
+
+没有 TTL 删除、没有自动清理或归档（文件只增），读取时只看最近 60 天；要清就删文件或清空，下一拍自动当空账。文件不在、读坏、坏行都当空账，只在日志记 `veto_skip:<n>`，不拦这一拍。60 天窗口写死在 `lib/veto.js`，不做成配置项。
+
+一行长这样：
+
+```json
+{"ts":1794328995600,"ticketId":"t-0","comboKey":"inspect|config→edit-config|config","objectNames":["/srv/app/config.yml"],"readPrimitive":"inspect","objectKind":"config","actionPrimitive":"edit-config","brief":"补上备份盘用量监控","reason":"方向否决：这块盘不会写满，不用进磁盘监控","verdict":"dropped"}
+```
+
+## 状态文件里有什么
+
+`state.json`（默认 `~/.dsh-ego/state.json`，原子写：tmp + rename）里是：`targetSession`（学到的私聊会话）、`nextRunAt`、`retryAfterAt`、`failStreak`、`lastRunAt` / `lastRollAt` / `lastSpokeAt` / `lastAskAt` / `lastReportAt`、`lastAction` / `lastReason` / `lastTicket`（ego 不再自己开票，`lastTicket` 只留给旧状态）、`ticketSeq`、`ticketRequests`（已经提上去的开票申请，最多 50 条）、`pendingSayQueue`、`pendingTicketQueue`、`pendingSeq`、`busySkips`。
+
+旧单槽 `pendingSay` / `pendingTicket` 只为回滚留着字段形状，新代码不读写；读到老状态的旧值会一次性搬进队列。`lastReportAt` 是终审判「这事要不要汇报」的依据，成功 `ask` 和成功开票都会更新它。
+
+## 失败怎么兜
+
+- 模型超时 / 抛错 / 返回的不是 JSON：这一拍算失败，`failStreak + 1`，下一拍重新排；
+- 正文为空但 `finish=max-tokens`：报错直说「模型把输出预算吃完了」，设了上限就调大 `maxTokens`；日志在叫终审之前先把点子落一行，终审挂了也丢不了；
+- 连败到 `maxFailStreak`：`retryAfterAt = now + backoffMinutes`，之后每再失败一次继续往后推，成功一次清零；
+- 目标会话没学到 / 不在活表 / 正忙：要说的那句进 `pendingSayQueue` 队尾，每拍取队头重试，超过 `pendingTtlMinutes` 按条丢，队列超 50 条丢最旧并记日志；
+- 开票申请遇到同样情况进 `pendingTicketQueue`，同 `callId` 重复入队只留一条，不同内容各排各的；
+- 每次跑完 `finally` 里必 `dispose` 临时 agent；两段都有硬超时（提议器 10 分钟 / 终审 3 分钟）。

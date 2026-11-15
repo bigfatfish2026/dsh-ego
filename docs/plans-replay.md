@@ -1,0 +1,77 @@
+# 想法重放：改 gate 之前的回归
+
+每版 stage2 方案都会落一行盘：gate 拒的、veto 拒的、`step1.verdict=abort` 的、空拍（`pick` 空串）、
+被 judge/gate 打回重写的都写，判完的也写。以前方案正文只在日志里剩一句 `ga_hits` 摘要，改完 gate
+想知道「刚才被误伤的那条 plan 现在过不过」，只能等下一拍随机产出类似想法——120~250 秒一次、还未必撞上。
+现在旧 plan 就在盘上，原地重跑一遍就行。
+
+## 文件
+
+默认 `~/.dsh-ego/plans.jsonl`（配置项 `plansPath`，或环境变量 `DSH_EGO_PLANS_PATH`），一行一条 JSON、
+append-only，跟 `state.json` / `veto.jsonl` 分开存。1.0.0 之前默认落在工作区同级
+（`<工作区>/dsh-ego.plans.jsonl`），升级时要显式指一次老路径，否则重放看不到旧计划：
+
+```sh
+export DSH_EGO_PLANS_PATH=/home/<user>/fatfish/dsh-ego.plans.jsonl
+```
+
+## 一行是什么
+
+`ts` / `callId` / `comboKey` / `candidate`（pick 编号 + 读与动作的原语×对象 + 动机 + 种子）/
+`plan`（整份方案原文，不截断）/ `gate`（`ok`、`hits`、`items` 逐条 `{ga, action, why}`，
+action 是 reject / downgrade / unsupported）/ `veto`（`{ok, hit, ran}`，没走到 veto 就写 `null`）/
+`judge`（`{action, reason}`，没叫终审就写 `null`）/ `outcome` / `round`（第几轮重写，首轮 0）。
+一行一份 plan，不合并。
+
+脱敏：写之前整份记录按字符串值过一遍 `redactVetoText`（该函数里的密钥前缀表全覆盖，命中就换成
+`***`），遮完仍是合法 JSON。
+
+写失败不影响裁决：序列化、轮转、append 全包在 try/catch 里，磁盘满 / 权限错 / 路径不存在都只记一行
+`plans_log_fail:…`，这一拍照旧往下判。append 用 `appendFileSync`（O_APPEND + 一次 write），
+单行不与别的写者交错。
+
+轮转：每次 append 前看一眼，文件超过 20MB 或超过 3000 行就改名成 `.1`（覆盖旧的 `.1`），新文件从空开始。
+行数不每次全量数，按 `stat.size` 命中进程内缓存，对不上才重数。
+
+## 跑回归
+
+```sh
+node scripts/replay.js                              # 最近 50 条
+node scripts/replay.js --limit 200 --since 2026-01-01
+node scripts/replay.js --ga GA10 --changed          # 只看历史命中过 GA10、且现在有变化的
+node scripts/replay.js --arbiter --max-cases 8 --limit 5   # 连 arbiter 一起重放（会调模型、花钱）
+```
+
+`--arbiter` 会把 gate 判不了的灰色条目（`unsure`）打包交给 arbiter 逐条判，**这一步会真调模型、会产生费用，
+所以默认关**；不开时只看 gate + veto，一分钱不花。`--arbiter-model <name>` 只换模型名（provider 沿用 headless
+默认路由），`--max-cases N` 限一次送几条（默认 8，1–24，跟线上同一套截断规则）。开了之后汇总行后面多一行
+`arbiter：送 X 条｜pass a｜reject b｜downgrade c｜失败 d`，逐条明细里追一句 `arbiter:GA10｜downgrade｜why:…`。
+arbiter 判 reject 或 downgrade 都会让条目算「变差」（旧 gate 放行、新链路拒/打回），所以开了之后退出码 1
+会更常见，这是预期。
+
+输出先一行汇总，再逐条列：
+
+```text
+重放 2 条：变好 1｜没变 1｜变差 0
+2026-01-01T13:20:00.000Z inspect|files→edit-file|files 变好：GA10 不再命中（旧：idea 里的数字 0.1、0 找不到出处）
+2026-01-01T13:28:00.000Z inspect|config→edit-config|config 没变：ga_hits 没变
+```
+
+有「变差」时退出码 1（方便以后接 CI），否则 0；读不到落盘文件退出码 2。过滤口径：`--since` / `--limit`
+按本地日算、`--limit` 取最近 N 条，`--ga` 只看那行历史上命中过这条 GA 的记录，`--changed` 只列前后有变化的。
+
+## 代码里直接调
+
+`replayPlan(record, { vetoEnabled, nowMs, arbiter, arbiterConfig })` 返回
+`{ before, after, changed, notes, veto, pass, arbiter }`（`changed` = `better` / `same` / `worse`，
+比较只认拒与降级，未核不算坏；`arbiter` 为 `null` 表示这次没跑，对象则是
+`{ cases, sent, skipped, verdicts, failed }`）；`replayFile(path, { since, until, limit, ga, onlyChanged, arbiter })`
+返回 `{ total, better, same, worse, items, arbiter }`。默认不调模型、不写任何文件、不动 state；
+只有传了 `arbiter` 才真调模型。
+
+## 两个已知边界
+
+GA3/GA4 要读盘那半默认不跑（不传 `deps` 就记 unsupported，别把「未核」当「合格」）；GA14 的
+`outboundTargets` 白名单默认空表，要复核那一条就从代码里传 `outboundTargets`。
+所以改 gate 的正确姿势是：先 `node scripts/replay.js --changed` 看旧 plan 有没有被新规则误伤，
+再决定这次改动收不收。

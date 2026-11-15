@@ -12,7 +12,8 @@
     "scripts/**/*",
     "cordis.patch.yml",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "docs/img/*"
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs"

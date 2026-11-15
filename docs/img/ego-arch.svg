@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1810" height="1190"
+ viewBox="0 0 1810 1190" role="img" aria-labelledby="fig-title fig-desc">
+<title id="fig-title">Distributed agent architecture with RSI components</title>
+<desc id="fig-desc">QQ transport, router session, ticket dispatcher, minnow worker pool, long-term memory, and an ego module containing a bottom-up proposer and adjudicator.</desc>
+<defs>
+  <marker id="arrow-ink" viewBox="0 0 10 10" refX="9.1" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M 0.6 1.2 L 9.2 5 L 0.6 8.8 z" fill="#253247"/>
+  </marker>
+  <marker id="arrow-muted" viewBox="0 0 10 10" refX="9.1" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M 0.6 1.2 L 9.2 5 L 0.6 8.8 z" fill="#66758A"/>
+  </marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9.1" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M 0.6 1.2 L 9.2 5 L 0.6 8.8 z" fill="#4778A8"/>
+  </marker>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9.1" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto">
+    <path d="M 0.6 1.2 L 9.2 5 L 0.6 8.8 z" fill="#7656A5"/>
+  </marker>
+</defs>
+<rect x="0" y="0" width="1810" height="1190" fill="#FFFFFF"/>
+<rect x="60" y="110" width="260" height="190" rx="15" ry="15" fill="#F4F6F9" stroke="#D5DDE7" stroke-width="1.5"/>
+<rect x="420" y="90" width="340" height="230" rx="15" ry="15" fill="#F4F6F9" stroke="#D5DDE7" stroke-width="1.5"/>
+<rect x="420" y="510" width="340" height="190" rx="15" ry="15" fill="#EEF5F0" stroke="#D5DDE7" stroke-width="1.5"/>
+<path d="M 436 525 H 744" stroke="#568267" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="860" y="90" width="530" height="270" rx="15" ry="15" fill="#F4F6F9" stroke="#D5DDE7" stroke-width="1.5"/>
+<path d="M 876 105 H 1374" stroke="#7656A5" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="882" y="180" width="318" height="142" rx="8" ry="8" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.15"/>
+<rect x="1218" y="180" width="150" height="142" rx="8" ry="8" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.15"/>
+<rect x="1490" y="110" width="260" height="250" rx="15" ry="15" fill="#F4F6F9" stroke="#D5DDE7" stroke-width="1.5"/>
+<rect x="1510" y="175" width="220" height="58" rx="8" ry="8" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.15"/>
+<rect x="1510" y="248" width="220" height="44" rx="8" ry="8" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.15"/>
+<rect x="1510" y="305" width="220" height="44" rx="8" ry="8" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.15"/>
+<rect x="60" y="520" width="260" height="190" rx="12" ry="12" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.35"/>
+<rect x="860" y="465" width="530" height="670" rx="15" ry="15" fill="#FFFFFF" stroke="#C7D1DE" stroke-width="1.65"/>
+<rect x="882" y="550" width="486" height="280" rx="12" ry="12" fill="#FBF5EC" stroke="#E8D8C5" stroke-width="1.25"/>
+<rect x="922" y="615" width="426" height="44" rx="8" ry="8" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.15"/>
+<rect x="922" y="669" width="426" height="44" rx="8" ry="8" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.15"/>
+<rect x="922" y="723" width="426" height="44" rx="8" ry="8" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.15"/>
+<rect x="922" y="777" width="426" height="44" rx="8" ry="8" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.15"/>
+<rect x="882" y="860" width="486" height="255" rx="12" ry="12" fill="#EEF4FA" stroke="#D4E0ED" stroke-width="1.25"/>
+<rect x="922" y="926" width="426" height="42" rx="8" ry="8" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.15"/>
+<rect x="922" y="982" width="426" height="42" rx="8" ry="8" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.15"/>
+<rect x="922" y="1038" width="205" height="48" rx="8" ry="8" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.15"/>
+<rect x="1143" y="1038" width="205" height="48" rx="8" ry="8" fill="#FFFFFF" stroke="#D5DDE7" stroke-width="1.15"/>
+<path d="M 320 170 L 420 170" fill="none" stroke="#253247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 420 245 L 320 245" fill="none" stroke="#66758A" stroke-width="1.6" stroke-dasharray="7 6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-muted)"/>
+<path d="M 760 180 L 860 180" fill="none" stroke="#7656A5" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<path d="M 760 270 L 860 270" fill="none" stroke="#7656A5" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<path d="M 1390 180 L 1490 180" fill="none" stroke="#7656A5" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<path d="M 1490 275 L 1390 275" fill="none" stroke="#7656A5" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<path d="M 1040 360 L 1040.0 395.0 Q 1040 405 1030.0 405.0 L 710.0 405.0 Q 700 405 700.0 395.0 L 700 320" fill="none" stroke="#7656A5" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<path d="M 470 320 L 470 510" fill="none" stroke="#253247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 1620 360 L 1620.0 410.0 Q 1620 420 1610.0 420.0 L 810.0 420.0 Q 800 420 800.0 430.0 L 800.0 555.0 Q 800 565 790.0 565.0 L 760 565" fill="none" stroke="#66758A" stroke-width="1.6" stroke-dasharray="7 6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-muted)"/>
+<path d="M 860 820 L 380.0 820.0 Q 370 820 370.0 810.0 L 370.0 290.0 Q 370 280 380.0 280.0 L 420 280" fill="none" stroke="#4778A8" stroke-width="2.0" stroke-dasharray="8 6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<path d="M 860 660 L 760 660" fill="none" stroke="#4778A8" stroke-width="2.0" stroke-dasharray="8 6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<path d="M 1125 860 L 1125 830" fill="none" stroke="#253247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 922 799 L 913.5 799.0 Q 905 799 905.0 790.5 L 905.0 753.5 Q 905 745 913.5 745.0 L 922 745" fill="none" stroke="#253247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 922 745 L 913.5 745.0 Q 905 745 905.0 736.5 L 905.0 699.5 Q 905 691 913.5 691.0 L 922 691" fill="none" stroke="#253247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 922 691 L 913.5 691.0 Q 905 691 905.0 682.5 L 905.0 645.5 Q 905 637 913.5 637.0 L 922 637" fill="none" stroke="#253247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 1000 1038 L 1000 1024" fill="none" stroke="#253247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 1270 1038 L 1270 1024" fill="none" stroke="#253247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 922 1003 L 913.5 1003.0 Q 905 1003 905.0 994.5 L 905.0 955.5 Q 905 947 913.5 947.0 L 922 947" fill="none" stroke="#253247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-ink)"/>
+<path d="M 84 590 H 148" fill="none" stroke="#253247" stroke-width="1.7" marker-end="url(#arrow-ink)"/>
+<path d="M 84 635 H 148" fill="none" stroke="#4778A8" stroke-width="2.0" stroke-dasharray="8 6" marker-end="url(#arrow-blue)"/>
+<path d="M 84 680 H 148" fill="none" stroke="#7656A5" stroke-width="2.6" marker-end="url(#arrow-purple)"/>
+<text x="82" y="161" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="27" font-weight="700" fill="#253247" text-anchor="start">im-qqbot</text>
+<text x="82" y="185" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="400" fill="#66758A" text-anchor="start">QQ transport in / out</text>
+<text x="442" y="141" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="27" font-weight="700" fill="#253247" text-anchor="start">router agent</text>
+<text x="442" y="165" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="400" fill="#66758A" text-anchor="start">wires tools, dispatches work</text>
+<text x="442" y="561" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="27" font-weight="700" fill="#253247" text-anchor="start">dsh-memory</text>
+<text x="442" y="585" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="400" fill="#66758A" text-anchor="start">long-term recall</text>
+<text x="882" y="141" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="27" font-weight="700" fill="#253247" text-anchor="start">dsh-dispatcher</text>
+<text x="882" y="165" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="400" fill="#66758A" text-anchor="start">executor: opens, dispatches, closes tickets</text>
+<text x="1041.0" y="248.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="22" font-weight="600" fill="#253247" text-anchor="middle">ticket desk</text>
+<text x="1041.0" y="269.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="400" fill="#66758A" text-anchor="middle">single writer of tickets</text>
+<text x="1293.0" y="248.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="20" font-weight="600" fill="#253247" text-anchor="middle">ticket log</text>
+<text x="1293.0" y="269.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="400" fill="#66758A" text-anchor="middle">append-only record</text>
+<text x="1512" y="161" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="27" font-weight="700" fill="#253247" text-anchor="start">minnow pool</text>
+<text x="1620.0" y="201.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="600" fill="#253247" text-anchor="middle">minnow (subagent)</text>
+<text x="1620.0" y="222.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="400" fill="#66758A" text-anchor="middle">runs one ticket</text>
+<text x="1620.0" y="277.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="600" fill="#253247" text-anchor="middle">minnow</text>
+<text x="1620.0" y="334.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="600" fill="#253247" text-anchor="middle">minnow</text>
+<text x="82" y="557" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">legend</text>
+<text x="884" y="505" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="27" font-weight="700" fill="#253247" text-anchor="start">dsh-ego</text>
+<text x="884" y="529" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="400" fill="#66758A" text-anchor="start">finds its own work</text>
+<text x="902" y="581" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">adjudicator</text>
+<text x="902" y="603" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="400" fill="#66758A" text-anchor="start">four serial checks</text>
+<text x="1101.4" y="634.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="600" fill="#66758A" text-anchor="start">4</text>
+<text x="1117.9" y="634.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="19" font-weight="600" fill="#253247" text-anchor="start">judge</text>
+<text x="1135.0" y="655.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="400" fill="#66758A" text-anchor="middle">worth doing? four verdicts</text>
+<text x="1097.2" y="688.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="600" fill="#66758A" text-anchor="start">3</text>
+<text x="1113.7" y="688.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="19" font-weight="600" fill="#253247" text-anchor="start">arbiter</text>
+<text x="1135.0" y="709.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="400" fill="#66758A" text-anchor="middle">unsure items escalated by gate</text>
+<text x="1107.2" y="742.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="600" fill="#66758A" text-anchor="start">2</text>
+<text x="1123.7" y="742.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="19" font-weight="600" fill="#253247" text-anchor="start">veto</text>
+<text x="1135.0" y="763.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="400" fill="#66758A" text-anchor="middle">owner already killed this?</text>
+<text x="1107.2" y="796.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="600" fill="#66758A" text-anchor="start">1</text>
+<text x="1123.7" y="796.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="19" font-weight="600" fill="#253247" text-anchor="start">gate</text>
+<text x="1135.0" y="817.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="400" fill="#66758A" text-anchor="middle">syntax &amp; structure gates</text>
+<text x="902" y="891" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="23" font-weight="700" fill="#253247" text-anchor="start">proposer</text>
+<text x="902" y="913" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="400" fill="#66758A" text-anchor="start">candidates then plan</text>
+<text x="1135.0" y="944.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="19" font-weight="600" fill="#253247" text-anchor="middle">stage2 plan</text>
+<text x="1135.0" y="965.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="400" fill="#66758A" text-anchor="middle">one model call</text>
+<text x="1135.0" y="1000.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="19" font-weight="600" fill="#253247" text-anchor="middle">stage1 candidates</text>
+<text x="1135.0" y="1021.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="400" fill="#66758A" text-anchor="middle">grid pairs, no model call</text>
+<text x="1024.5" y="1059.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="600" fill="#253247" text-anchor="middle">read cells</text>
+<text x="1024.5" y="1080.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="400" fill="#66758A" text-anchor="middle">what ego can read</text>
+<text x="1245.5" y="1059.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="600" fill="#253247" text-anchor="middle">action cells</text>
+<text x="1245.5" y="1080.0" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="400" fill="#66758A" text-anchor="middle">what ego can do</text>
+<text x="1135" y="1067" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="22" font-weight="500" fill="#66758A" text-anchor="middle">‖</text>
+<text x="1135" y="1104" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="400" fill="#66758A" text-anchor="middle">pair read × action cells</text>
+<text x="370" y="153" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round" paint-order="stroke" text-anchor="middle">inbound: agent.followup</text>
+<text x="370" y="153" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="#253247" text-anchor="middle">inbound: agent.followup</text>
+<text x="370" y="268" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round" paint-order="stroke" text-anchor="middle">session/event + assistant stream</text>
+<text x="370" y="268" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="#66758A" text-anchor="middle">session/event + assistant stream</text>
+<text x="810" y="160" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round" paint-order="stroke" text-anchor="middle">1 dispatch_open</text>
+<text x="810" y="160" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="#7656A5" text-anchor="middle">1 dispatch_open</text>
+<text x="810" y="292" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round" paint-order="stroke" text-anchor="middle">5 dispatch_close</text>
+<text x="810" y="292" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="#7656A5" text-anchor="middle">5 dispatch_close</text>
+<text x="1440" y="160" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round" paint-order="stroke" text-anchor="middle">2 spawn</text>
+<text x="1440" y="160" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="#7656A5" text-anchor="middle">2 spawn</text>
+<text x="1440" y="299" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round" paint-order="stroke" text-anchor="middle">3 dispatch_report</text>
+<text x="1440" y="299" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="#7656A5" text-anchor="middle">3 dispatch_report</text>
+<text x="865" y="396" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round" paint-order="stroke" text-anchor="middle">4 send_message</text>
+<text x="865" y="396" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="#7656A5" text-anchor="middle">4 send_message</text>
+<text x="490" y="376" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="600" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round" paint-order="stroke" text-anchor="start">memory_save · archive</text>
+<text x="490" y="376" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="600" fill="#66758A" text-anchor="start">memory_save · archive</text>
+<text x="490" y="397" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="600" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round" paint-order="stroke" text-anchor="start">merge · reflect</text>
+<text x="490" y="397" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="16" font-weight="600" fill="#66758A" text-anchor="start">merge · reflect</text>
+<text x="1175" y="405" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round" paint-order="stroke" text-anchor="middle">read only, write blocked</text>
+<text x="1175" y="405" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="#66758A" text-anchor="middle">read only, write blocked</text>
+<text x="610" y="802" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round" paint-order="stroke" text-anchor="middle">ticket request (agent.followup)</text>
+<text x="610" y="802" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="#4778A8" text-anchor="middle">ticket request (agent.followup)</text>
+<text x="810" y="642" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round" paint-order="stroke" text-anchor="middle">read only</text>
+<text x="810" y="642" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="15" font-weight="600" fill="#4778A8" text-anchor="middle">read only</text>
+<text x="168" y="595" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="400" fill="#66758A" text-anchor="start">main flow</text>
+<text x="168" y="640" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="400" fill="#66758A" text-anchor="start">ego proposal</text>
+<text x="168" y="685" font-family="Arial, Helvetica, 'Liberation Sans', 'DejaVu Sans', sans-serif" font-size="18" font-weight="400" fill="#66758A" text-anchor="start">work &amp; report</text>
+</svg>

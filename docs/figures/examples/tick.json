@@ -1,0 +1,184 @@
+{
+  "meta": {
+    "title": "dsh-ego 一拍：想法生成、三轮裁决、执行与归档",
+    "desc": "三段数据流图。backlog 素材产出一个删除候选；三轮方案与证据复核依次经过 gate 与 arbiter；judge 判成只能问维护者；排队的问题被回答、补发、手工开票，执行时先备份再校验后删除，最后收尾归档。票号是真实运行记录，人称与会话 id 已脱敏。"
+  },
+  "canvas": { "w": 2600, "h": 2680 },
+  "labels": {
+    "rewrite": "改写后重新提交",
+    "reply": "维护者回应"
+  },
+  "row": { "y": 2260, "h": 300, "node_w": 432, "gap": 30, "count": 5 },
+  "sections": [
+    { "x": 60, "y": 70, "w": 2480, "h": 380, "number": "01", "title": "想法生成", "subtitle": "stage1 · 从合法组合中选取候选动作", "style": "blue" },
+    { "x": 60, "y": 470, "w": 2480, "h": 1440, "number": "02", "title": "提议器 × 裁决器迭代", "subtitle": "三轮提议与证据复核；gate 降级后由 arbiter 复核，最终进入 judge", "style": "blue" },
+    { "x": 60, "y": 1930, "w": 2480, "h": 700, "number": "03", "title": "执行器 · 执行与归档", "subtitle": "问询补发、人工确认、工单执行与状态收尾", "style": "purple", "gap_at": 1260 }
+  ],
+  "cards": [
+    {
+      "x": 120, "y": 160, "w": 700, "h": 275, "style": "blue",
+      "title": "05:17:55 · stage1",
+      "body": [
+        "9 个合法组合",
+        "生成的想法：inspect files → delete files",
+        "动机：backlog",
+        "种子：「手上还没收尾的待办、",
+        "　　　说好要做的事」"
+      ],
+      "body_size": 21, "line_gap": 28
+    },
+    {
+      "x": 120, "y": 600, "w": 700, "h": 165, "style": "blue",
+      "title": "v1 · 05:18:38",
+      "body": [
+        "43.0 秒 · 4 turns",
+        "工具 6 次（read 4 / glob 1）",
+        "verdict: continue · 2 步 · estLines 2"
+      ],
+      "body_size": 20.5, "line_gap": 28
+    },
+    {
+      "x": 120, "y": 1045, "w": 700, "h": 155, "style": "blue",
+      "title": "v2 · 05:18:57",
+      "body": [
+        "10.0 秒 · 1 turn · 工具 0 次",
+        "没再读文件，纯改写",
+        "verdict: continue · estLines 2"
+      ],
+      "body_size": 20.0, "line_gap": 26
+    },
+    {
+      "x": 120, "y": 1480, "w": 700, "h": 190, "style": "blue",
+      "title": "v3 · 05:19:19",
+      "body": [
+        "8.3 秒 · 1 turn · 工具 0 次",
+        "ga_hits 无 · allowDo true · estLines 2",
+        "点子：清理 logs 下两份过期轮转：",
+        "pending_after_restart.log.1（11 行）",
+        "notify.log.1（1 行）"
+      ],
+      "body_size": 19.2, "line_gap": 25
+    },
+    {
+      "x": 900, "y": 585, "w": 1500, "h": 145, "style": "amber",
+      "title": "gate · GA7 打回，降级",
+      "body": ["undo.howto 没命中 delete 的撤回模板；模板例：cp 到备份目录，再从备份拷回"],
+      "body_size": 20.5, "line_gap": 28
+    },
+    {
+      "x": 900, "y": 1030, "w": 1500, "h": 140, "style": "amber",
+      "title": "gate · GA6 打回，降级",
+      "body": ["reversibility 写宽了：候选默认档 none，方案写的是 manual"],
+      "body_size": 20.5, "line_gap": 28
+    },
+    {
+      "x": 900, "y": 770, "w": 1500, "h": 220, "style": "green",
+      "title": "arbiter 1 · 05:18:47 · 9.5 秒",
+      "body": [
+        "送 2 条 · pass 2",
+        "GA4：路径存在，第 1 行有内容，锚点没错；只是文件名带 .1，让 gate 不认形状",
+        "GA17：两份待删文件与 step1.read、plan.files 完全对得上（11 行自检、1 行 timer 回显）"
+      ],
+      "body_size": 19.5, "line_gap": 30
+    },
+    {
+      "x": 900, "y": 1190, "w": 1500, "h": 220, "style": "green",
+      "title": "arbiter 2 · 05:19:10 · 13.2 秒",
+      "body": [
+        "送 2 条 · pass 2",
+        "GA4：路径与「文件:行号」形式相符，第 1 行确实是那份自检头",
+        "GA17：读了这两份文件，11 行与 1 行跟方案描述逐字对得上"
+      ],
+      "body_size": 19.5, "line_gap": 30
+    },
+    {
+      "x": 900, "y": 1465, "w": 1500, "h": 215, "style": "green",
+      "title": "arbiter 3 · 05:19:36 · 17.0 秒",
+      "body": [
+        "送 2 条 · pass 2",
+        "GA4：读到的确实是「文件:行号」，第二行开头就是 line 2；.1 后缀让 gate 认不出",
+        "GA17：step1.read、object.value、anchor、plan.files 三处同一对路径，11 行与 1 行一致"
+      ],
+      "body_size": 19.0, "line_gap": 30
+    },
+    {
+      "x": 120, "y": 1725, "w": 2280, "h": 160, "style": "purple",
+      "title": "judge · 05:19:42 · action = ask · ticket = null",
+      "body": [
+        "删日志文件属于不可恢复操作；按裁决原则第 2 条，只能问维护者，不能自己开票。",
+        "重写共 2 次"
+      ],
+      "body_size": 20.5, "line_gap": 28
+    },
+    {
+      "x": 120, "y": 2070, "w": 2280, "h": 150, "style": "quiet",
+      "title": "05:19:42 · pendingSayQueue",
+      "body": [
+        "会话 <session> 正忙（running），先存着 → pendingSayQueue 编号 p25",
+        "ego_tick 摘要记成「失败 · 会话正忙」"
+      ],
+      "body_size": 20.0, "line_gap": 28
+    },
+    {
+      "slot": 0, "y": 2260, "w": 432, "h": 300, "style": "quiet",
+      "title": "05:32:14 · 维护者回应",
+      "body": ["维护者在会话里先答了 do"],
+      "body_size": 19.0, "line_gap": 25, "valign": "middle"
+    },
+    {
+      "slot": 1, "y": 2260, "w": 432, "h": 300, "style": "quiet",
+      "title": "05:32:56.881 · 问话补发",
+      "body": [
+        "晚 42 秒落地",
+        "logs 下两份过期轮转：",
+        "pending_after_restart.log.1（11 行）",
+        "notify.log.1（1 行）",
+        "都是 11 月 2 日的一次性记录；",
+        "同目录另有 152 份轮转",
+        "先备份到 .del-backup，再删除，行吗？",
+        "→ ackPendingByKey 销账，队列剩 0"
+      ],
+      "body_size": 17.2, "line_gap": 24, "valign": "middle"
+    },
+    {
+      "slot": 2, "y": 2260, "w": 432, "h": 300, "style": "quiet",
+      "title": "05:34:36 · 主会话开票",
+      "body": [
+        "手工开票：",
+        "t-mwd4368i-b5pa",
+        "ego 这拍没开票，",
+        "lastTicket 还是旧那张"
+      ],
+      "body_size": 18.0, "line_gap": 25, "valign": "middle"
+    },
+    {
+      "slot": 3, "y": 2260, "w": 432, "h": 300, "style": "purple",
+      "title": "执行 · 备份与校验",
+      "body": [
+        "mkdir -p .del-backup",
+        "→ cp -p 两份",
+        "md5sum + cmp 逐字节一致",
+        "→ rm",
+        "pending_after_restart.log.1 · 981 B",
+        "md5 3360f18…",
+        "notify.log.1 · 91 B",
+        "md5 e853b13…"
+      ],
+      "body_size": 17.3, "line_gap": 24, "valign": "middle"
+    },
+    {
+      "slot": 4, "y": 2260, "w": 432, "h": 300, "style": "green",
+      "title": "收尾 · 归档",
+      "body": [
+        "logs 下 .log 31 个",
+        "轮转文件：152 → 150",
+        "state：pendingSayQueue []",
+        "pendingSeq 25",
+        "lastAskAt 13:32:56.878",
+        "plans.jsonl 第 17 行：evidence 四条，",
+        "文件名脱敏为 ***"
+      ],
+      "body_size": 17.3, "line_gap": 24, "valign": "middle"
+    }
+  ]
+}

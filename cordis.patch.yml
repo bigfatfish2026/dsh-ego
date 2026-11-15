@@ -8,6 +8,7 @@
 #
 # 以下全是默认值，用户改这里就生效；插件里 DEFAULTS 只做兜底。
 # 没写的键一律用插件默认值（补丁按整行替换，不做深合并）：只写你想改的那几行也合法。
+# README 的「配置」节只列绕不开的几项，全量字段、默认值、区间和越界行为以本文件为准。
 - insert:
     - id: dsh-ego
       name: 'dsh-ego'
@@ -213,6 +214,7 @@
         #   pass 放行 / reject 整拍不做 / downgrade 打回重写。
         # 链条：gate（判死的）→ veto（台账）→ arbiter（灰色）→ judge（整份方案值不值得做）。
         # 失败（超时 / 坏 JSON）一律降级：这些条目按 unsupported 放行，不拒整拍。
+        # 关掉（enabled: false）就退回「灰色条目记 unsupported 就放行」的老行为。
         arbiter:
           enabled: true
           # 留空 = 用宿主自己的默认路由（同 proposer / judge）
@@ -222,6 +224,7 @@
           maxTokens: 1500
           # 推理档位 low / high / max，默认 low：逐条判「该不该拦」，不用深想
           reasoningEffort: low
+          # 硬超时；到点一律按失败降级，不拒整拍
           timeoutMs: 120000
           # 一次最多送几条：默认 8，超了按 GA 编号截断并记 arbiter_case:超 N 条已略
           maxCases: 8
