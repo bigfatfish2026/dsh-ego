@@ -97,7 +97,7 @@ plan.steps 里的「${step}」不在配对矩阵里（${parsed.primitive} 不碰
 
 **防什么**：方案引一个不存在的文件，或者行号写飞了（文件只有 50 行却写 `:900`）。
 
-**判据**：`anchor` 必须匹配 `FILE_LINE_PATTERN`（gate.js:54）：`/[A-Za-z0-9_./-]+\.(?:js|mjs|cjs|yml|yaml|md):\d+(?:-\d+)?/`。不匹配不拒，只记 unsupported。匹配后交 `deps.checkFileLine` 查盘，返回 `missing` 或 `invalid` 即命中；返回 `denied` 归 GA5。
+**判据**：`anchor` 必须匹配 `FILE_LINE_PATTERN`（gate.js:61-66）。冒号前面得是个像样的文件名：带已知后缀（`js|mjs|cjs|yml|yaml|md` + `json|ts|tsx|sh|toml|ini|conf|txt|lock`）、或落在固定名里（`.gitignore`/`.npmignore`/`.dockerignore`/`.gitattributes`/`.editorconfig`/`.env`/`Dockerfile`/`Makefile`）；名字后还能跟一段 `.bak-20261117` 这种备份戳，最后接 `:行号`（可带 `-结束行`）。`http://10.0.0.5:8080`、裸时间 `12:30`、`2026-11-18T00:34:21Z`、`GA8:1` 都不算。不匹配不拒，只记 unsupported。匹配后交 `deps.checkFileLine` 查盘，返回 `missing` 或 `invalid` 即命中；返回 `denied` 归 GA5。
 
 **why 模板原文**：
 
@@ -109,7 +109,7 @@ anchor「${anchor}」不是「文件:行号」形状（unit 名 / 记忆 id / UR
 
 **处置与重写**：reject（1797、1802）。GA4 不在 `REWRITE_GATE_ACTIONS` 里，不进重写，这一拍直接不动。
 
-**已知局限**：`anchor` 为空时必 unsupported（633-634），不写锚点就免检；只认六种扩展名，`.ts`/`.json` 锚点不会被核。
+**已知局限**：`anchor` 为空时必 unsupported（633-634），不写锚点就免检；后缀表之外的锚点（如 `state.db:1`、`x.zip:3`）仍不会被核。
 
 ## GA5：不许碰 /tmp 与越权路径
 

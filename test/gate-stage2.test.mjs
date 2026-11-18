@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { checkStage2Plan, createGate, IMPACT_SLOTS, REVERSIBILITY_RANK } from '../lib/gate.js';
+import { checkStage2Plan, createGate, IMPACT_SLOTS, REVERSIBILITY_RANK, FILE_LINE_PATTERN } from '../lib/gate.js';
 import { PAIR_SET, PRIMITIVES, OBJECT_KINDS } from '../lib/grid.js';
 import { checkExists } from '../lib/exists.js';
 
@@ -455,6 +455,92 @@ test('GA8：自指方案两样都有就过；缺 URL 或缺本仓行号都降级
 
   const normal = checkStage2Plan(plan(), { candidates: [candidate()] });
   assert.deepEqual(normal.downgrade, []);
+});
+
+/* ── FILE_LINE_PATTERN：「文件:行号」的形状（GA4 / GA8 / proposer 点子校验共用） ── */
+
+test('FILE_LINE_PATTERN：老六种后缀照旧，新增后缀 / 固定名 / 备份戳也认', () => {
+  const yes = [
+    'lib/gate.js:36', 'lib/gate.js:36-40', 'cordis.patch.yml:11', 'docs/gate-rules.md:100',
+    'lib/boot.mjs:1', 'lib/boot.cjs:1', 'a/b/c.yaml:7',
+    'package.json:19', 'tsconfig.json:8', 'src/index.ts:42', 'src/App.tsx:9',
+    'scripts/release.sh:20', 'Cargo.toml:3', 'conf/nginx.conf:14', 'notes.txt:2',
+    'package-lock.json:88', '.editorconfig:5',
+    '.gitignore:11', '.npmignore:4', '.dockerignore:7', 'Dockerfile:12', 'deploy/Dockerfile:12', 'Makefile:3',
+    'package.json.bak-20261117:19', 'cordis.patch.yml.bak-20261115-0013:1258',
+    '~/fatfish/plugins/dsh-ego/lib/route.js:104-108',
+  ];
+  for (const one of yes) assert.equal(FILE_LINE_PATTERN.test(one), true, `应匹配：${one}`);
+});
+
+test('FILE_LINE_PATTERN：URL / 裸时间 / ISO 时间戳 / GA8:1 不算文件:行号', () => {
+  const no = [
+    'http://127.0.0.1:61208',
+    'http://10.0.0.5:8080/path',
+    '12:30',
+    '08:40-09:00',
+    '2026-11-18T00:34:21Z',
+    'GA8:1',
+    'nginx:1',
+    'v1.2.3:4',
+    't-mwlef86m-x1pv:2',
+  ];
+  for (const one of no) assert.equal(FILE_LINE_PATTERN.test(one), false, `不该匹配：${one}`);
+});
+
+test('GA8：anchor 是 .gitignore:11 / package.json.bak-20261117:19 时不再判「没给本仓文件:行号」', () => {
+  const selfPlan = (anchor) => {
+    const file = anchor.slice(0, anchor.lastIndexOf(':'));
+    const line = anchor.slice(anchor.lastIndexOf(':') + 1);
+    return plan({
+      idea: `dsh-ego 的 ${file} 第 ${line} 行要补一条规则`,
+      object: { kind: 'files', value: file, anchor },
+      evidence: [{
+        claim: '上游文档 https://example.com/ignore.md 说这条要加',
+        source: 'web_fetch',
+        value: line,
+        at: '2026-11-10T05:28:00Z',
+      }],
+      plan: { steps: ['P1×files', 'P2×files'], files: [anchor], estLines: 1 },
+      intent: {
+        impact: { paths: [file], services: [], remotes: [] },
+        reversibility: 'auto',
+        undo: { kind: 'file', ref: '', howto: `git checkout -- ${file}` },
+      },
+    });
+  };
+  for (const anchor of ['.gitignore:11', 'package.json.bak-20261117:19', 'package.json:19', 'cordis.patch.yml:11']) {
+    const out = checkStage2Plan(selfPlan(anchor), { candidates: [candidate()] });
+    assert.equal(
+      out.downgrade.some((one) => one.ga === 'GA8'),
+      false,
+      `有本仓行号就不该报 GA8：${anchor} → ${JSON.stringify(gAs(out.downgrade))}`,
+    );
+  }
+});
+
+test('GA8：anchor 只有 12:30 或 http://127.0.0.1:61208 时仍判没给本仓行号', () => {
+  const barePlan = (anchor) => plan({
+    idea: `dsh-ego 在 ${anchor} 这处有问题`,
+    object: { kind: 'files', value: anchor, anchor },
+    evidence: [{
+      claim: '上游文档 https://example.com/x 提到',
+      source: 'web_fetch',
+      value: '1',
+      at: '2026-11-10T05:28:00Z',
+    }],
+    plan: { steps: ['P1×files', 'P2×files'], files: [], estLines: 0 },
+    intent: {
+      impact: { paths: [], services: [], remotes: [] },
+      reversibility: 'auto',
+      undo: { kind: '', ref: '', howto: '' },
+    },
+  });
+  for (const anchor of ['12:30', 'http://127.0.0.1:61208']) {
+    const out = checkStage2Plan(barePlan(anchor), { candidates: [candidate()] });
+    const why = out.downgrade.filter((one) => one.ga === 'GA8').map((one) => one.why).join('\n');
+    assert.match(why, /文件:行号/, `应判没给本仓行号：${anchor} → ${JSON.stringify(gAs(out.downgrade))}`);
+  }
 });
 
 /* ── GA9：外网 URL 只许 http(s) ────────────────────────────────────── */
