@@ -2,7 +2,7 @@
  * stage1 候选枚举（lib/grid.js）与存在性核查（lib/exists.js）的单测。
  *
  * 两段式（两段式实现）之后，覆盖这些事：
- * 对的两段形状与数量（全开 16 对 / 默认 13 对 + 最多一格单段读）、确定性、矩阵对两段都管、
+ * 对的两段形状与数量（全开 19 对 / 默认 15 对 + 最多一格单段读）、确定性、约束表对两段都管、
  * 亲和度与动机权重只进排序、自指冷却 12h、recentCombos 只认对、素材额度、
  * maxCandidates 截断、lastMaterial 排后；再加 exists 的本地核查。
  */
@@ -17,12 +17,17 @@ import {
   MAX_ACTIONS_PER_READ,
   MOTIVATION_PRIMITIVES,
   PAIRING_MATRIX,
+  PAIR_CONSTRAINTS,
   PRIMITIVES,
   ROLE_ACTION,
   ROLE_READ,
   SINGLE_READ_MOTIVATIONS,
   affinityOf,
   buildGrid,
+  cellIdOf,
+  createSeededRandom,
+  enumerateCells,
+  materialHintsOf,
   normalizeComboKey,
 } from '../lib/grid.js';
 import { EXIST_STATUS, checkExists, checkFileLine } from '../lib/exists.js';
@@ -45,7 +50,7 @@ const MATERIALS = [
 
 const ALL_PRIMITIVES = Object.fromEntries(PRIMITIVES.map((p) => [p.key, true]));
 const ALL_OBJECTS = Object.fromEntries(
-  ['files', 'config', 'service', 'memory', 'ticket', 'session', 'externalDoc', 'externalRepo'].map((k) => [k, true]),
+  ['files', 'config', 'service', 'memory', 'ticket', 'session', 'externalDoc', 'externalRepo', 'plan'].map((k) => [k, true]),
 );
 
 /** 线上默认开关（DEFAULTS.proposer.primitives）：service / memoryWrite / outbound 关着。 */
@@ -75,11 +80,13 @@ const readOf = (c) => [c.read.primitive, c.read.objectKind];
 const actionOf = (c) => (c.action ? [c.action.primitive, c.action.objectKind] : null);
 const quads = (list) => list.map((c) => [...readOf(c), ...(actionOf(c) ?? [null, null]), c.material]);
 
-test('全开时 16 对：R 段只读、A 段有副作用、id 按截断后顺序编号', () => {
+test('全开时 19 对：R 段只读、A 段有副作用、id 按截断后顺序编号', () => {
   const first = grid();
   const second = grid();
   assert.deepEqual(first, second, '同样输入两次必须一模一样');
-  assert.equal(first.length, 16, '规则第五节实算：8 个原语全开、8 类对象全开 = 16 对');
+  // 9 个原语（8 条原有 + P9 写方案）、9 类对象（8 类原有 + plan）全开：
+  // 读格 11（inspect×9 + external-research×2）、动作格 8，素材 9 条按槽位挂满后实算 19 对
+  assert.equal(first.length, 19, '规则第五节实算：原语/对象全开 = 19 对');
   assert.ok(first.length <= DEFAULT_MAX_CANDIDATES, '默认上限 24 不许超');
   assert.deepEqual(
     first.map((c) => c.id),
@@ -98,13 +105,16 @@ test('全开时 16 对：R 段只读、A 段有副作用、id 按截断后顺序
   }
 });
 
-test('默认开关下 13 对，外加最多一格单段读', () => {
+test('默认开关下 15 对，外加最多一格单段读', () => {
   const list = grid({ primitives: DEFAULT_PRIMITIVES, maxCandidates: 99 });
   const pairs = list.filter((c) => c.action);
   const singles = list.filter((c) => !c.action);
-  assert.equal(pairs.length, 13, '规则第十一节：默认开关下只剩 13 对');
+  assert.equal(pairs.length, 15, '默认开关下 15 对（新增 draft×plan 一格）');
   assert.equal(singles.length, 1, '单段读全拍最多一格');
-  assert.ok(pairs.every((c) => ['edit-file', 'edit-config', 'delete'].includes(c.action.primitive)), '默认只放三条动作原语');
+  assert.ok(
+    pairs.every((c) => ['edit-file', 'edit-config', 'delete', 'draft'].includes(c.action.primitive)),
+    '默认只放四条动作原语（含写方案）',
+  );
   const single = singles[0];
   assert.ok(SINGLE_READ_MOTIVATIONS.includes(single.motivation), `单段读的动机是 ${single.motivation}，只许 hygiene / status`);
   assert.ok(ROLE_READ.includes(single.read.primitive));
@@ -222,7 +232,7 @@ test('单段读的键带箭尾：能进 recentCombos，第二拍就轮换掉', (
   // 第二拍：这一格已经记过，不再补单段；对那一半不受影响
   const second = grid({ primitives: DEFAULT_PRIMITIVES, maxCandidates: 99, recentCombos: [key] });
   assert.equal(second.filter((c) => !c.action).length, 0, '同一单段格第二拍被 recentCombos 挤掉');
-  assert.equal(second.length, 13, '默认开关下的 13 对还在');
+  assert.equal(second.length, 15, '默认开关下的 15 对还在');
 });
 
 test('素材池空返回空数组', () => {
@@ -255,9 +265,10 @@ test('一条素材最多挂两个读格，读格再各配最多两个动作格',
   assert.equal(readCells(two).size, 1, 'materialSlots=1 时只挂一个读格');
   assert.ok(two.length > 0);
   const five = grid({ materials: single, materialSlots: 5 });
-  // 额度放宽：读到 5 个读格，但 inspect×ticket 在亲和度表里配不出任何动作格 → 不出候选
-  assert.equal(readCells(five).size, 4, '额度放宽后铺到四格（票那一格配不出动作格）');
-  assert.equal(five.length, 7, '2 + 2 + 2 + 1 对');
+  // 额度放宽：读到 5 个读格；inspect×memory 亲和度 0 配不出动作格，其余四格出 8 对
+  // （ticket 格现在接得住 draft×plan 了）
+  assert.equal(readCells(five).size, 5, '额度放宽后铺到五格');
+  assert.equal(five.length, 8, '2 + 2 + 2 + 1 + 1 对');
 });
 
 test('原语/对象开关关掉就不进候选（读格与动作格都按白名单判）', () => {
@@ -321,19 +332,22 @@ const SNAPSHOT = [
   ['inspect', 'files', 'edit-file', 'files', '手上还没收尾的待办、说好要做的事'],
   ['inspect', 'config', 'edit-config', 'config', '宿主状态：温度、内存、磁盘、服务、日志'],
   ['inspect', 'files', 'delete', 'files', '手上还没收尾的待办、说好要做的事'],
-  ['external-research', 'external-repo', 'delete', 'external-repo', '手上还没收尾的待办、说好要做的事'],
+  ['external-research', 'external-repo', 'delete', 'external-repo', '宿主状态：温度、内存、磁盘、服务、日志'],
   ['inspect', 'config', 'edit-file', 'files', '宿主状态：温度、内存、磁盘、服务、日志'],
-  ['external-research', 'external-repo', 'edit-file', 'files', '手上还没收尾的待办、说好要做的事'],
+  ['external-research', 'external-doc', 'edit-file', 'files', '手上还没收尾的待办、说好要做的事'],
+  ['external-research', 'external-repo', 'edit-file', 'files', '宿主状态：温度、内存、磁盘、服务、日志'],
+  ['external-research', 'external-doc', 'memory-write', 'memory', '手上还没收尾的待办、说好要做的事'],
   ['inspect', 'service', 'service', 'service', '本地仓库和远端是不是同步'],
   ['inspect', 'memory', 'memory-write', 'memory', '邮箱 / 消息通知里有没有攒着没看的'],
   ['inspect', 'service', 'edit-config', 'config', '本地仓库和远端是不是同步'],
+  ['inspect', 'ticket', 'draft', 'plan', '记忆里有没有新条目、有没有互相矛盾的'],
   ['inspect', 'external-repo', 'delete', 'external-repo', '陈旧的备份、日志、临时文件是不是该清了'],
   ['inspect', 'session', 'outbound', 'session', '挑一个本地仓库翻翻，看有没有跑不过的测试'],
+  ['inspect', 'plan', 'draft', 'plan', '优化 dsh-ego 插件自己'],
   ['inspect', 'external-doc', 'edit-file', 'files', 'yaml / 配置里有没有没人用的项'],
   ['inspect', 'external-repo', 'edit-file', 'files', '陈旧的备份、日志、临时文件是不是该清了'],
-  ['external-research', 'external-doc', 'edit-file', 'files', '优化 dsh-ego 插件自己'],
+  ['inspect', 'plan', 'edit-file', 'files', '优化 dsh-ego 插件自己'],
   ['inspect', 'external-doc', 'memory-write', 'memory', 'yaml / 配置里有没有没人用的项'],
-  ['external-research', 'external-doc', 'memory-write', 'memory', '优化 dsh-ego 插件自己'],
 ];
 
 test('lastMaterial 不命中时排序与改前完全一致（快照）', () => {
@@ -423,4 +437,155 @@ test('exists：锚点行号不越界', async () => {
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
   }
+});
+
+/* ══ 运行时枚举 + 约束表 + 加权抽取（B 版）════════════════════════════ */
+
+/** 线上素材池（profile 那 11 条，第 11 条是「用 backlog_list 写方案文档到 plans/」）。 */
+const LIVE_MATERIALS = [
+  { text: '手上还没收尾的待办、说好要做的事', motivation: 'backlog' },
+  { text: '挑一个本地仓库翻翻，看有没有明显的 bug、跑不过的测试、过期的 TODO', motivation: 'hygiene' },
+  { text: '本地仓库和远端是不是同步（有没有该推的提交、该拉的提交）', motivation: 'sync' },
+  { text: 'yaml / 配置里有没有已经没人用的项、重复的段、注释掉的死配置', motivation: 'hygiene' },
+  { text: '陈旧的备份、日志、临时文件是不是该清了（只许提，别动手）', motivation: 'hygiene' },
+  { text: '邮箱 / 消息通知里有没有攒着没看的东西', motivation: 'social' },
+  { text: '记忆里有没有新条目、有没有互相矛盾的', motivation: 'memory' },
+  { text: '宿主机器的状态：温度、内存、磁盘、服务、日志里有没有异常', motivation: 'status' },
+  { text: '优化 dsh-ego 插件自己：必须写成 lib/x.js:行号 + 大概改 3~8 行', motivation: 'self' },
+  { text: '挑一个仓库检查代码质量，结构、重复、测试、死代码；只提不改', motivation: 'hygiene' },
+  {
+    text: '用 backlog_list 工具从工单池里挑一条待办，写一份方案文档到 ~/fatfish/plans/backlog-<编号>.md；只写文档不动手',
+    motivation: 'backlog',
+  },
+];
+
+/** 线上默认开关（DEFAULTS.proposer）：service / memoryWrite / outbound 关着，draft 开着。 */
+const LIVE_PRIMITIVES = {
+  inspect: true,
+  editFile: true,
+  editConfig: true,
+  service: false,
+  memoryWrite: false,
+  delete: true,
+  outbound: false,
+  externalResearch: true,
+  draft: true,
+};
+
+test('枚举：全量合法组合 19 个体 + 开关过滤 + 约束表截掉没意义的格', () => {
+  const all = enumerateCells({ includeDisabled: true });
+  assert.equal(all.length, 19, '9 原语 × 9 对象按约束表过滤后剩 19 格');
+  const keys = all.map((one) => `${one.primitive.id}|${one.objectKind.id}`);
+  // 票面要的两格
+  assert.ok(keys.includes('draft|plan'), '写方案×计划大纲必须在池里');
+  assert.ok(keys.includes('inspect|plan'), '读文件×计划大纲必须在池里');
+  // 约束表截掉的：删方案文档走 delete×files，改方案文档走 edit-file×files
+  assert.equal(keys.includes('delete|plan'), false, '删×计划大纲无意义（删文档 = delete×files），不许入池');
+  assert.equal(keys.includes('draft|files'), false, '写方案×文件无意义（产出文档的落盘路径记在 plan.files）');
+  assert.equal(keys.includes('edit-config|plan'), false, '改配置×计划大纲无意义');
+  assert.equal(keys.includes('outbound|plan'), false, '外部通信×计划大纲无意义');
+
+  // 开关过滤：只开 inspect / draft，对象只开 files / plan
+  const filtered = enumerateCells({
+    primitives: { inspect: true, draft: true },
+    objects: { files: true, plan: true },
+  });
+  assert.deepEqual(
+    filtered.map((one) => `${one.role}:${one.primitive.id}×${one.objectKind.id}`).sort(),
+    ['action:draft×plan', 'read:inspect×files', 'read:inspect×plan'],
+  );
+});
+
+test('格号稳定：按原语序×对象序算，后加维度不挪已有编号', () => {
+  assert.equal(cellIdOf('inspect', 'files'), 'X01', '第一格永远是 X01');
+  assert.equal(cellIdOf('inspect', 'plan'), 'X09');
+  assert.equal(cellIdOf('edit-file', 'files'), 'X10');
+  assert.equal(cellIdOf('draft', 'plan'), 'X81');
+  assert.equal(cellIdOf('nope', 'files'), '', '认不出的原语给空串');
+  // 每个枚举出来的格都带一个能反查回去的编号
+  for (const one of enumerateCells({ includeDisabled: true })) {
+    assert.equal(one.id, cellIdOf(one.primitive.id, one.objectKind.id));
+  }
+});
+
+test('素材正文倾向：方案文档素材认得出 plan / ticket / draft，别的不受影响', () => {
+  const hints = materialHintsOf(LIVE_MATERIALS[10].text);
+  assert.ok(hints.objects.has('plan'), 'plans/ 与方案文档 → plan');
+  assert.ok(hints.objects.has('ticket'), 'backlog_list / 工单池 → ticket');
+  assert.ok(hints.primitives.has('draft'), '写一份方案 → draft');
+  const neutral = materialHintsOf('手上还没收尾的待办、说好要做的事');
+  assert.equal(neutral.objects.size, 0, '普通待办素材保持中性');
+  assert.equal(neutral.primitives.size, 0);
+});
+
+test('随机抽取：同 seed 必得同一批，不同 seed 不会永远抽同一格', () => {
+  const args = {
+    materials: LIVE_MATERIALS,
+    primitives: LIVE_PRIMITIVES,
+    objects: ALL_OBJECTS,
+    now: NOW,
+    maxCandidates: 99,
+  };
+  const a = buildGrid({ ...args, seed: 20261118 });
+  const b = buildGrid({ ...args, seed: 20261118 });
+  assert.deepEqual(a, b, '同一 seed 两次必须一模一样');
+  assert.ok(a.length > 1, '随机路径也要给出多条候选');
+
+  // 200 个 seed 各抽一次第一格：出现过的格种类不能只有一种
+  const firstCells = new Set();
+  for (let seed = 0; seed < 200; seed += 1) {
+    const list = buildGrid({ ...args, seed });
+    assert.ok(list.length > 0);
+    firstCells.add(`${list[0].readCellId}->${list[0].actionCellId || '单段'}`);
+  }
+  assert.ok(firstCells.size >= 5, `200 拍里第一格只有 ${firstCells.size} 种，等于永远抽同一格`);
+});
+
+test('backlog 方案素材能被配到「写方案×计划大纲」，不是每回都钉在改配置×config', () => {
+  const args = {
+    materials: LIVE_MATERIALS,
+    primitives: LIVE_PRIMITIVES,
+    objects: ALL_OBJECTS,
+    now: NOW,
+    maxCandidates: 99,
+  };
+  let draftHits = 0;
+  let sawTicketRead = false;
+  const firstPicks = new Map();
+  for (let seed = 0; seed < 200; seed += 1) {
+    const list = buildGrid({ ...args, seed });
+    const first = list[0];
+    firstPicks.set(`${first.read.primitive}×${first.read.objectKind} → ${first.action?.primitive}×${first.action?.objectKind}`, (firstPicks.get(`${first.read.primitive}×${first.read.objectKind} → ${first.action?.primitive}×${first.action?.objectKind}`) ?? 0) + 1);
+    if (first.action?.primitive === 'draft') draftHits += 1;
+    if (list.some((one) => one.read.objectKind === 'ticket' && one.action?.primitive === 'draft')) sawTicketRead = true;
+  }
+  assert.ok(sawTicketRead, '读票 → 写方案 这一对必须出现在候选池里');
+  assert.ok(draftHits >= 20, `200 拍里只有 ${draftHits} 拍第一格是写方案，权重没把这条素材拉过去`);
+  assert.ok(draftHits < 200, '也不许把写方案钉成唯一解，其它格还得能抽到');
+  // 线上老现症：这条素材配成 inspect×service → edit-config×config 的次数要明显低于写方案
+  const oldBug = [...firstPicks.values()].length;
+  assert.ok(oldBug > 0);
+});
+
+test('读文件×计划大纲（inspect×plan）合法，且读方案能接动作格', () => {
+  assert.ok(PAIR_CONSTRAINTS.find((one) => one.primitive === 'inspect').objects.includes('plan'));
+  assert.ok(PAIRING_MATRIX.inspect.includes('plan'));
+  const list = buildGrid({
+    materials: [{ text: '读一份已有的方案文档，看还有哪步没做', motivation: 'backlog' }],
+    primitives: { inspect: true, editFile: true, editConfig: true, draft: true },
+    objects: { plan: true, files: true, config: true },
+    now: NOW,
+    seed: 7,
+  });
+  const planReads = list.filter((one) => one.read.primitive === 'inspect' && one.read.objectKind === 'plan');
+  assert.ok(planReads.length > 0, '读文件×计划大纲 必须能成对');
+  assert.ok(
+    planReads.some((one) => one.action?.primitive === 'draft'),
+    '读方案 → 再出方案（draft×plan）要接得上',
+  );
+  // 读方案 → 再动手：plan 读格接 files / config / service 三个动作格
+  assert.equal(affinityOf('plan', 'files'), 1);
+  assert.equal(affinityOf('plan', 'config'), 1);
+  assert.equal(affinityOf('plan', 'service'), 1);
+  assert.equal(affinityOf('plan', 'plan'), 2);
 });

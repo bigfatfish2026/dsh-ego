@@ -7,7 +7,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  IDEA_OBJECT_HINTS,
   PROPOSER_MATERIALS,
   buildProposerPrompt,
   parseProposal,
@@ -57,7 +56,6 @@ test('对象名词表可换：配了词表就按词表卡，空词表只卡数�
   const rejected = validateIdea('有 3 个构建产物可以删', { objectHints: ['表', '文件'] });
   assert.equal(rejected.ok, false, '词表里没有这个词就该判不具体');
   assert.ok(rejected.problems.some((p) => p.includes('对象')), rejected.problems.join('；'));
-  assert.deepEqual(IDEA_OBJECT_HINTS, [], '代码里不再持有默认名词表');
   assert.equal(validateIdea('有 3 个构建产物可以删').ok, true, '空词表不该把所有点子判死');
   assert.equal(validateIdea('整理一下仓库').ok, false, '空词表下数量仍要卡');
 });

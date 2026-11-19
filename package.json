@@ -16,7 +16,7 @@
     "docs/img/*"
   ],
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "test": "sh -c 'b=$(mktemp -d /tmp/dsh-ego-test-XXXXXX) || exit 1; trap \"rm -rf \\\"$b\\\"\" EXIT INT TERM; TMPDIR=\"$b\" node --test test/*.test.mjs; exit $?'"
   },
   "license": "MIT",
   "author": "bigfatfish2026",

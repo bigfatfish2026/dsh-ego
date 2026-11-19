@@ -1077,7 +1077,7 @@ test('gate 不 import fs/path/os：读盘那半只从 deps 进来', () => {
 });
 
 test('gate 的原语别名表与 grid.js 的 PRIMITIVES 一致', () => {
-  // P1..P8 的序号与 id 映射：拿 PRIMITIVES 的顺序逐条对
+  // P1..P9 的序号与 id 映射：拿 PRIMITIVES 的顺序逐条对
   PRIMITIVES.forEach((p, i) => {
     const verdict = checkStage2Plan(plan({ plan: { steps: [`P${i + 1}×files`], files: [], estLines: 0 } }), {
       candidates: [candidate({ objectKind: 'files' })],
@@ -1087,7 +1087,10 @@ test('gate 的原语别名表与 grid.js 的 PRIMITIVES 一致', () => {
     const why = verdict.reject.map((one) => one.why).join('');
     assert.equal(why.includes('认不出是哪个原语'), false, `P${i + 1} 没解析成 ${p.id}`);
   });
-  assert.deepEqual(OBJECT_KINDS.map((one) => one.id).sort(), ['config', 'external-doc', 'external-repo', 'files', 'memory', 'service', 'session', 'ticket']);
+  assert.deepEqual(
+    OBJECT_KINDS.map((one) => one.id).sort(),
+    ['config', 'external-doc', 'external-repo', 'files', 'memory', 'plan', 'service', 'session', 'ticket'],
+  );
 });
 
 test('index.js 的接线：deps 注入一处、gate.checkPlan 一处、ga_hits 一处', () => {

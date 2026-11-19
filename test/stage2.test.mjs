@@ -132,7 +132,7 @@ test('stage2 提示词：候选行把 objectKind 显式写出来，模型照抄�
   assert.match(prompt, /会被 GA2 当场拒/, '要把 GA2 的后果说明白');
 });
 
-test('stage2 提示词：八类对象名字与一句话释义都在，config 不是 files', () => {
+test('stage2 提示词：九类对象名字与一句话释义都在，config 不是 files', () => {
   const prompt = buildStage2Prompt([CANDIDATE], [], {});
   for (const kind of STAGE2_OBJECT_KINDS) {
     assert.ok(prompt.includes(kind), `提示词里要有对象类「${kind}」`);
@@ -299,10 +299,10 @@ test('pick 不是字符串 / idea、why 缺：reason=schema', () => {
   assert.equal(parseStage2Plan(JSON.stringify(noWhy), { candidates: [CANDIDATE] }).reason, 'schema');
 });
 
-test('object 三件套缺一件、kind 不在八类里：reason=schema', () => {
+test('object 三件套缺一件、kind 不在九类里：reason=schema', () => {
   const badKind = JSON.parse(plan());
   badKind.object.kind = 'database';
-  assert.match(parseStage2Plan(JSON.stringify(badKind), { candidates: [CANDIDATE] }).detail, /八类对象/);
+  assert.match(parseStage2Plan(JSON.stringify(badKind), { candidates: [CANDIDATE] }).detail, /九类对象/);
 
   for (const field of ['kind', 'value', 'anchor']) {
     const broken = JSON.parse(plan());

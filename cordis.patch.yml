@@ -117,7 +117,7 @@
           # 每条一个对象，motivation 是动机档位（backlog / hygiene / sync / social / memory / status / self）；
           # 档位写错不拒加载，那条会被剔掉并写日志。这里整组可换，写了就以你的为准。
           materials:
-            - text: 手上还没收尾的待办、说好要做的事
+            - text: 手上还没收尾的待办、说好要做的事：必须落到一个具体文件的具体一处，小范围改完并给出撤回命令；涉及重启才生效或已经被否决的，不算
               motivation: backlog
             - text: 挑一个本地仓库翻翻，看有没有明显的 bug、跑不过的测试、过期的 TODO
               motivation: hygiene
@@ -135,7 +135,7 @@
               motivation: status
             - text: 优化 dsh-ego 插件自己：必须写成 文件路径:行号 + 大概改 3~8 行 + 要跑的那两三个测试（写明 node --test 加测试文件），禁止「整理一下代码」
               motivation: self
-          # 原语开关：关掉的原语整条不进候选（规则第三节八条）
+          # 原语开关：关掉的原语整条不进候选（规则第三节八条 + 后加的 P9 写方案）
           primitives:
             inspect: true
             editFile: true
@@ -145,6 +145,7 @@
             delete: true        # 只许提，落到票仍是 none → 降级 ask
             outbound: false     # 发消息归别的插件
             externalResearch: true
+            draft: true         # P9 写方案：产出 plans/*.md 这类计划文档（backlog 素材靠它落格）
           # 对象类别开关（规则第四节）
           objects:
             files: true
@@ -155,6 +156,7 @@
             session: true
             externalDoc: true
             externalRepo: true
+            plan: true          # 第九类对象：计划大纲（读方案 = inspect×plan，写方案 = draft×plan）
           # 外部检索：缓存 TTL 与单拍抓取上限
           research:
             ttlDays: 7
