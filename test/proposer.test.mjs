@@ -128,8 +128,9 @@ test('冷却过期或从没提过：素材池原样不动', () => {
 
 /* ── 素材池对象形态（两阶段第一批） ─────────────────────── */
 
-test('motivation 档位是七档，未知值不拒加载只剔条', () => {
-  assert.deepEqual(PROPOSER_MOTIVATIONS, ['backlog', 'hygiene', 'sync', 'social', 'memory', 'status', 'self']);
+test('motivation 档位是八档，未知值不拒加载只剔条', () => {
+  // 档位表唯一来源是 lib/motivations.js；这里只钉「顺序与集合」，加档要在那处加
+  assert.deepEqual(PROPOSER_MOTIVATIONS, ['backlog', 'hygiene', 'sync', 'social', 'memory', 'status', 'self', 'solution']);
   const { materials, dropped } = normalizeMaterials([
     { text: '看看磁盘', motivation: 'status' },
     { text: '猜一个方向', motivation: 'whatever' },

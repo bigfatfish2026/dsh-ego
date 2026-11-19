@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- 第八档动机 `solution`「取已定方案并落地」：每拍只读 `~/.dsh/backlog/backlog.db` 取
+  `status=已定方案` 的条目，stage2 只挑其中一条、只做方案的第一步（改文件 / 改配置），
+  开票 goal 按「执行已定方案 <bl-id>：…；只做第一步：…；完成后把该条目改已完成」拼。
+  池空时这条素材整条不进候选，不会拿空池硬出方案。
+- gate 新增 GA18（来源可核）/ GA19（执行面收敛）/ GA20（单步），只对 solution 动机生效；
+  三道都进 `REWRITE_GATE_ACTIONS` 落 `ask`，命中先打回重写、改不好再问人。
+- 配置项 `backlogPath`（默认 `~/.dsh/backlog/backlog.db`，只读，读不到按空池处理）。
+
+### Changed
+
+- 动机定义收成单一来源 `lib/motivations.js`（id / 权重 / 原语 / 素材关键词 / 是否允许单段读）；
+  `proposer.js` 白名单、`grid.js` 的权重与原语表、`grid.js` 与 `gate.js` 两份单段读白名单
+  全部从这张表派生，加一档动机不再要改五处。
+- stage2 的动机专属闸改成注册表 `STAGE2_MOTIVATION_RULES`（code / 适用动机 / 判断函数 / 降级动作），
+  GA18~GA20 由表驱动；GA1~GA17 这类按字段判、全动机通用的关仍留在原位。
+- 「已定方案」探针收成 provider：`engines/proposer.js` 不直接碰 sqlite，
+  `buildGrid` 只收池数组，保持纯函数；读不到库只记日志、回空池，不打崩整拍。
+
 ## 1.0.1
 
 ### Added

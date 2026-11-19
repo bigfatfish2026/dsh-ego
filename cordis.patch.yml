@@ -57,6 +57,9 @@
         # 不设容量上限、不做自动清理/归档（规则第十四节）：文件只增，读侧按 60 天过滤。
         # 手工清：删掉或清空这个文件即可，下一拍自动当空账，不用重启。
         # vetoPath: ~/.dsh-ego/veto.jsonl
+        # 工单池库（solution 动机每拍只读取「已定方案」）：默认 ~/.dsh/backlog/backlog.db，
+        # 与 dsh-backlog 的落点一致；只读，库不在/没表按空池处理。改这项要重启才生效。
+        #   backlogPath: ~/.dsh/backlog/backlog.db
         # 方案落盘（改 gate 前的重放回归）：每版 stage2 plan 一行 JSONL，
         # 超 20MB / 3000 行自动改名成 .1；默认 ~/.dsh-ego/plans.jsonl，
         # 可用 plansPath 或 DSH_EGO_PLANS_PATH 换位置。重放：node scripts/replay.js（见 README「想法重放」）
@@ -111,8 +114,9 @@
           stage2MaxTokens: 8000
           # 打回重写最多几次（默认 3，允许 1~5；越界夹到边界并 warn，不拒加载）
           maxRewrite: 3
-          # 素材池：写进提示词的思考方向，开源版默认这 9 条通用方向（最后一条是优化插件自己）。
-          # 每条一个对象，motivation 是动机档位（backlog / hygiene / sync / social / memory / status / self）；
+          # 素材池：写进提示词的思考方向，开源版默认这 9 条通用方向（最后一条是优化插件自己），
+          # 外加一条「取已定方案并落地」（solution，需要 dsh-backlog 里有「已定方案」条目才会出候选）。
+          # 每条一个对象，motivation 是动机档位（backlog / hygiene / sync / social / memory / status / self / solution）；
           # 档位写错不拒加载，那条会被剔掉并写日志。这里整组可换，写了就以你的为准。
           materials:
             - text: 手上还没收尾的待办、说好要做的事：必须落到一个具体文件的具体一处，小范围改完并给出撤回命令；涉及重启才生效或已经被否决的，不算
@@ -133,6 +137,10 @@
               motivation: status
             - text: 优化 dsh-ego 插件自己：必须写成 文件路径:行号 + 大概改 3~8 行 + 要跑的那两三个测试（写明 node --test 加测试文件），禁止「整理一下代码」
               motivation: self
+            # solution：从 dsh-backlog 取 status=已定方案 的条目，只做方案的第一步。
+            # 池里没有「已定方案」时这条素材整条不进候选（不会拿空池硬出方案）。
+            - text: 从工单池取一条「已定方案」（backlog_list status=已定方案），读它的方案正文；能小范围、可自动撤回地落地就直接执行；要重启、停服务、删数据、碰外部服务或改不回来的，停下来问主人。一条只做第一步，不整份一次做完。
+              motivation: solution
           # 原语开关：关掉的原语整条不进候选（规则第三节八条 + 后加的 P9 写方案）
           primitives:
             inspect: true

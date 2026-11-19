@@ -2,7 +2,7 @@
 
 gate 是裁决器的第一关：纯代码，不调模型，只看提议器（stage2）交上来的那一份 plan 能不能用。它不拼提示词、不发消息、不写 state，只回一份 verdict，形状是 `{ok, allowDo, reject, downgrade, unsupported, unsure, notes, hits, checks}`（gate.js:995-1005）。
 
-在裁决器里的位置是 **gate → veto → arbiter → judge**：gate 先跑 GA1~GA17，判不了的灰色条目收进 `unsure`；过了否决账本（veto）之后，`unsure` 非空才叫 arbiter 逐条判；最后才把方案交给终审。arbiter 这一关见文末。
+在裁决器里的位置是 **gate → veto → arbiter → judge**：gate 先跑 GA1~GA20（GA18 起按动机挂表，见 `STAGE2_MOTIVATION_RULES`），判不了的灰色条目收进 `unsure`；过了否决账本（veto）之后，`unsure` 非空才叫 arbiter 逐条判；最后才把方案交给终审。arbiter 这一关见文末。
 
 gate 里有两段：`checkStage2Plan` 是纯函数（不读盘、不看时钟，515 起），跑 GA1/GA2/GA6~GA14 的轻量版加 GA15/GA16 结构；GA3/GA4/GA5 要真读盘，由 `createGate().checkPlan` 拿注入的 deps 补跑（1668 起）。
 
@@ -38,6 +38,9 @@ gate 里有两段：`checkStage2Plan` 是纯函数（不读盘、不看时钟，
 | GA15 | 两段式结构齐 | step1 三栏不齐 / abort 却写 step2 / 单段读不合规 / continue 缺 step2 | downgrade（→ silent） | gate.js:793-868 |
 | GA16 | 第一步是只读 | 读格原语不是 inspect/external-research，或 steps[0] 是动作原语 | downgrade（→ silent） | gate.js:870-883 |
 | GA17 | 第一步对象对上素材 | 素材里的字面路径锚点、第一步落点都写成一条事实 | unsure（不降级，交 arbiter） | gate.js:825-848 |
+| GA18 | 来源可核（solution） | 方案没写 bl-id，或写的 bl-id 不在本拍已定方案池里 | downgrade（→ ask） | gate.js:494-521 |
+| GA19 | 执行面收敛（solution） | steps 里有 edit-file/edit-config 以外的动作原语，或方案文本命中重启/停服/删数据/改表 | downgrade（→ ask） | gate.js:524-553 |
+| GA20 | 单步（solution） | plan.steps 里的动作步多于 1 步 | downgrade（→ ask） | gate.js:556-566 |
 
 ## GA1：pick 必须是本拍候选，且那一格开着
 
@@ -335,6 +338,39 @@ plan.steps 的第一步是动作原语（${firstStep.primitive}）：读的那�
 
 **已知局限**：只抽路径，不抽行号；占位符示例（`lib/x.js`）也会被当成字面锚点，由 arbiter 看过原文再放行。
 
+## GA18~GA20：solution 动机的专属关
+
+**为什么单独一张表**：这三关只对 `motivation=solution`（取已定方案并落地）的候选生效。
+它们不写成 `checkStage2Plan` 里三段 if，而是注册在 `STAGE2_MOTIVATION_RULES`（gate.js:571-575）：
+每条带 `ga` / `code` / `motivations` / `action` / `check`，主流程只按动机跑表、命中就按表里的
+`action` 降级。加一档动机的新关只加一条表项 + 在 `REWRITE_GATE_ACTIONS` 记落点，不动主流程。
+
+### GA18：来源可核
+
+**防什么**：模型自己编一个 `bl-` 编号，或者拿池外的方案开工。
+
+**判据**：`object.value` / `step1.read` / `plan.files` 三处按顺序找第一个 `bl-[a-z0-9]+-[a-z0-9]{4}`；
+都没写 → 命中；写了但不在本拍 `context.solutionPool` 里 → 命中。
+bl-id 不是磁盘路径，所以这一格的 `object.value` 不送 GA3/GA5 查存在性（只留一条 note），来源由本关核。
+
+### GA19：执行面收敛
+
+**防什么**：solution 方案偷偷动服务、删文件、发消息，或第一步就要重启 / 停服 / 删数据 / 改表。
+
+**判据**：两条任一命中即可——① `plan.steps` 里的动作原语不在 `edit-file` / `edit-config`；
+② `idea` / `why` / `step2.change` / `step2.undo` / `plan.steps` / `intent.undo.howto` 拼起来命中
+`restart|reboot|systemctl|stop|disable|rm -rf|drop table|truncate|ALTER`。
+命中是降级 ask，不是拒：模型可以改成一条能自动撤回的落地方案再重写一版。
+
+### GA20：单步
+
+**防什么**：把整份方案一次做完。
+
+**判据**：`plan.steps` 里的**动作步**多于 1 步就命中。不数读那一步：GA15 要求 steps 里有动作原语、
+GA16 要求第一步是只读原语，合法方案最少是「读一步 + 动一步」两行；按总行数判 1 步会跟这两关打架。
+
+**处置**：GA18/19/20 都是 downgrade、code 同名、原判 `ask`；进重写，用满次数落 `ask`（问人要不要开票）。
+
 ## 重写与耗尽
 
 `REWRITE_GATE_ACTIONS`（gate.js:439-451）的完整映射：
@@ -352,10 +388,13 @@ plan.steps 的第一步是动作原语（${firstStep.primitive}）：读的那�
 | GA15 | silent | reject |
 | GA16 | silent | reject |
 | GA17 | silent | reject |
+| GA18 | ask | downgrade（solution 专属） |
+| GA19 | ask | downgrade（solution 专属） |
+| GA20 | ask | downgrade（solution 专属） |
 
-落到 `silent` 的：GA1、GA2、GA3、GA6、GA10、GA15、GA16、GA17，共 8 条，都是原本判拒的关。落到 `ask` 的：GA7、GA8、GA12，共 3 条，原本就是降级。
+落到 `silent` 的：GA1、GA2、GA3、GA6、GA10、GA15、GA16、GA17，共 8 条，都是原本判拒的关。落到 `ask` 的：GA7、GA8、GA12、GA18、GA19、GA20，共 6 条（后三条是 solution 专属，原本就按降级 ask 处置）。
 
-不在表里的：GA4/GA5/GA9/GA14 保持 reject，不进循环；GA11/GA13 判不了、没有 code，不进循环，仍是普通降级进终审落 `ask`。GA12 的三个分支各带自己的 code（`files`/`steps`/`estLines`），`REWRITE_CODES` 是这 11 个 GA 名加这三个分支（454）。
+不在表里的：GA4/GA5/GA9/GA14 保持 reject，不进循环；GA11/GA13 判不了、没有 code，不进循环，仍是普通降级进终审落 `ask`。GA12 的三个分支各带自己的 code（`files`/`steps`/`estLines`），`REWRITE_CODES` 是这 14 个 GA 名加这三个分支。
 
 次数：`DEFAULT_MAX_REWRITE = 3`（proposer.js:141），范围 1–5，`clampMaxRewrite` 把非数字打回默认、非整数截断、小于 1 夹到 1（proposer.js:150-165）。每轮打一行 `stage2_rewrite:${n}｜by:${ga}｜left:${剩余}｜why:${原因}`；用满时打 `rewrite_exhausted:共${rewrites}次｜原因:${ga}｜落回:${originalAction}｜${why}`（rewrite.js:175），然后按 `exhaustedDecision` 出 `silent`（`text=''`、`ticket=null`）或 `ask`。
 

@@ -66,10 +66,11 @@ test('GA17：带扩展名的路径按字面抽，x.js / x.test.mjs 也不替模�
   assert.deepEqual(materialFilePaths('改 lib/gate.js:801'), ['lib/gate.js']);
 });
 
-test('GA17：默认 9 条素材都是方向描述，一条锚点都抽不出来', () => {
+test('GA17：默认 10 条素材都是方向描述，一条锚点都抽不出来', () => {
   const patch = fs.readFileSync(new URL('../cordis.patch.yml', import.meta.url), 'utf8');
   const texts = [...patch.matchAll(/^\s*- text:\s*(.+)$/gm)].map((one) => one[1].trim());
-  assert.equal(texts.length, 9, '默认素材池是 9 条');
+  // 9 条通用方向 + 1 条 solution（取已定方案并落地）；solution 那条也不许写死文件锚点
+  assert.equal(texts.length, 10, '默认素材池是 10 条');
   for (const text of texts) {
     assert.deepEqual(materialFilePaths(text), [], `这条素材不该抓出锚点：${text}`);
   }
