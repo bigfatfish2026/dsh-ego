@@ -1,6 +1,6 @@
 {
   "name": "dsh-ego",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "主动念头两段式：提议器 agent 想出点子，终审 agent 四选一（无动作 / 问用户 / 直接开票 / 打回重写），没动作时用户什么都看不见",
   "type": "module",
   "main": "lib/index.js",
