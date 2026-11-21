@@ -52,6 +52,14 @@ test('安静时段支持小数小时：23.66 = 23:40', () => {
   assert.equal(inQuiet(at(2026, 11, 8, 23, 30), 23, 8), true, '老配置写整数照样认');
 });
 
+test('安静时段越界：quietStart 超过 24 点直接不启用', () => {
+  assert.equal(inQuiet(at(2026, 11, 8, 23, 50), 25, 8), false, 'quietStart=25 越界');
+});
+
+test('安静时段越界：quietEnd 小于 0 点直接不启用', () => {
+  assert.equal(inQuiet(at(2026, 11, 8, 23, 50), 23.66, -1), false, 'quietEnd=-1 越界');
+});
+
 test('能不能跑：峰价不跑，安静时段不跑', () => {
   assert.equal(speakingWindow(at(2026, 11, 9, 10), cfg).ok, false, '周一 10 点峰价');
   assert.equal(speakingWindow(at(2026, 11, 9, 20), cfg).ok, true, '周一 20 点谷价');
