@@ -15,6 +15,7 @@ import {
   emptyReplyError,
   finishKind,
   normalizeReasoningEffort,
+  openAgentSession,
   routeOptions,
   runAgent,
   selectAllow,
@@ -123,7 +124,9 @@ test('正常跑完：建 agent、restrict 一次、塞提示词、取到文本�
 
   const created = seen.create[0];
   assert.equal(created.sessionId, 'uuid-fixed', 'sessionId 用裸 uuid');
-  assert.equal(created.meta.origin, 'subagent');
+  // header 的 origin 只允许 'subagent'（dsh-session lib/index.js:1097），传了就等于自认子代理；
+  // 这里断言的是「这个键根本不出现」，不是换成别的值
+  assert.equal('origin' in created.meta, false, 'meta 里不许带 origin，helper 会话不是子代理');
   assert.equal(created.meta.agentPreset, 'dsh-ego');
   assert.equal('parentAgent' in created, false, '临时 agent 不许挂 parentAgent');
   assert.deepEqual(created.agentOptions, { provider: 'example-provider', model: 'example-model', maxTokens: 800 });
@@ -424,4 +427,22 @@ test('assistantTurns：数模型往返了几轮，跑完的返回里也带这个
     2,
     '每轮收一条 assistant/message：两轮 = 中间翻过一次工具',
   );
+});
+
+test('openAgentSession 建会话同样不带 origin：stage2 这条可续接的 helper 不是子代理', async () => {
+  const { deps, seen } = harness();
+  const opened = await openAgentSession(deps, {
+    kind: 'stage2',
+    allow: ['read'],
+    timeoutMs: 200,
+    agentPreset: 'dsh-ego-proposer',
+    agentOptions: { provider: 'example-provider', model: 'example-model', maxTokens: 800 },
+  });
+
+  assert.equal(opened.ok, true, opened.ok ? '' : opened.error);
+  assert.equal('origin' in seen.create[0].meta, false, 'meta 里不许带 origin');
+  assert.equal(seen.create[0].meta.agentPreset, 'dsh-ego-proposer', 'agentPreset 要保留');
+
+  await opened.dispose();
+  assert.equal(seen.disposed, 1, 'dispose 必须调用一次');
 });
