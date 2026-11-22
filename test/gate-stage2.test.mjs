@@ -947,6 +947,67 @@ test('GA15：verdict=abort 是合法收工——step1 齐、step2 空着就行�
   assert.match(contradictory.downgrade.find((one) => one.ga === 'GA15').why, /读了判断不动/);
 });
 
+test('GA15：step1.read 声称读过的路径，本拍 read 一次没碰就打回；不传 readPaths 时不判', () => {
+  const HOME = '/home/julia';
+  const GATE = `${HOME}/fatfish/plugins/dsh-ego/lib/gate.js`;
+
+  // 相对 ↔ 绝对：plan 写 lib/gate.js，实际 read 记的是绝对路径
+  const relative = checkStage2Plan(plan(), { candidates: [candidate()], readPaths: [GATE], home: HOME });
+  assert.equal(relative.hits.includes('GA15'), false, JSON.stringify(relative.downgrade));
+
+  // ~ 展开：plan 写 ~/…，实际 read 记的是绝对路径
+  const tilde = checkStage2Plan(plan({ step1: { read: '~/.dsh/profiles/qqbot/cordis.patch.yml:679', verdict: 'continue', abortIf: 'x' } }), {
+    candidates: [candidate()],
+    readPaths: [`${HOME}/.dsh/profiles/qqbot/cordis.patch.yml`],
+    home: HOME,
+  });
+  assert.equal(tilde.hits.includes('GA15'), false, JSON.stringify(tilde.downgrade));
+
+  // 反过来：实际 read 记的是 ~/…，plan 写绝对路径
+  const reversed = checkStage2Plan(plan({ step1: { read: `${HOME}/.dsh/profiles/qqbot/cordis.patch.yml`, verdict: 'continue', abortIf: 'x' } }), {
+    candidates: [candidate()],
+    readPaths: ['~/.dsh/profiles/qqbot/cordis.patch.yml'],
+    home: HOME,
+  });
+  assert.equal(reversed.hits.includes('GA15'), false, JSON.stringify(reversed.downgrade));
+
+  // 一处都没读过：按 GA15 既有风格打回重写（code=GA15，用满落 silent）
+  const stale = checkStage2Plan(plan(), {
+    candidates: [candidate()],
+    readPaths: [`${HOME}/fatfish/plugins/dsh-ego/lib/proposer.js`],
+    home: HOME,
+  });
+  const failed = stale.downgrade.find((one) => one.ga === 'GA15');
+  assert.ok(failed, JSON.stringify(stale.downgrade));
+  assert.equal(failed.code, 'GA15');
+  assert.equal(failed.originalAction, 'silent');
+  assert.match(failed.why, /read 一次都没碰过/);
+  assert.match(failed.why, /实际读过：.*proposer\.js/);
+  assert.equal(stale.ok, true, '可重写降级不是硬拒，跟其它 GA15 分支一致');
+
+  // 一次 read 都没调（2026-11-21 那拍）：空集合照样打回
+  const noRead = checkStage2Plan(plan(), { candidates: [candidate()], readPaths: [], home: HOME });
+  assert.match(noRead.downgrade.find((one) => one.ga === 'GA15').why, /实际读过：一个文件都没读/);
+
+  // step1.read 是一句话，写了文件 + grep 的目录：命中一处就放行（别把 grep 的路径当没读）
+  const prose = checkStage2Plan(plan({
+    step1: {
+      read: `${HOME}/.dsh/profiles/qqbot/cordis.patch.yml（全文 1358 行读完）＋ grep ${HOME}/fatfish/plugins/dsh-price-clock 查 cheapWindows 默认值`,
+      verdict: 'continue',
+      abortIf: 'x',
+    },
+  }), {
+    candidates: [candidate()],
+    readPaths: [`${HOME}/.dsh/profiles/qqbot/cordis.patch.yml`],
+    home: HOME,
+  });
+  assert.equal(prose.hits.includes('GA15'), false, JSON.stringify(prose.downgrade));
+
+  // 不传 readPaths（replay / 老调用方）：这一条不判，老行为不变
+  const bare = checkStage2Plan(plan(), { candidates: [candidate()] });
+  assert.equal(bare.hits.includes('GA15'), false);
+});
+
 const SINGLE_CANDIDATE = (over = {}) => candidate({ primitive: 'inspect', motivation: 'hygiene', defaults: { impact: 'read', reversibility: 'auto' }, ...over });
 
 const singlePlan = (over = {}) => plan({

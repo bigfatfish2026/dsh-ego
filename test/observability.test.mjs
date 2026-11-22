@@ -176,9 +176,12 @@ test('toolStats：从 tool/call、tool/result 事件里数工具数、去重文�
     grep: 1,
     bash: 1,
     filesRead: 1,
+    readPaths: ['/a.js'],
     emptyGlobs: 1,
   });
-  assert.deepEqual(toolStats([]), { total: 0, read: 0, glob: 0, grep: 0, bash: 0, filesRead: 0, emptyGlobs: 0 });
+  assert.deepEqual(toolStats([]), {
+    total: 0, read: 0, glob: 0, grep: 0, bash: 0, filesRead: 0, readPaths: [], emptyGlobs: 0,
+  });
 });
 
 test('toolStats：真实 tool/result 形状（content[0].text）的空 glob 也数得出来', () => {

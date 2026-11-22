@@ -35,7 +35,7 @@ gate 里有两段：`checkStage2Plan` 是纯函数（不读盘、不看时钟，
 | GA12 | 幅度上限 | steps>5、files>3 或 estLines>40 | downgrade（→ ask） | gate.js:746-756 |
 | GA13 | 同素材不许连着两拍 | 本拍候选素材与上一拍素材字面全等 | downgrade（→ ask，不进重写） | gate.js:758-763 |
 | GA14 | outbound 目标在白名单 | 目标一个都没写，或目标不在白名单里 | reject | gate.js:765-791 |
-| GA15 | 两段式结构齐 | step1 三栏不齐 / abort 却写 step2 / 单段读不合规 / continue 缺 step2 | downgrade（→ silent） | gate.js:793-868 |
+| GA15 | 两段式结构齐 + 读盘可核 | step1 三栏不齐 / abort 却写 step2 / 单段读不合规 / continue 缺 step2 / step1.read 声称的路径本拍没读过 | downgrade（→ silent） | gate.js:793-868, 1009-1035 |
 | GA16 | 第一步是只读 | 读格原语不是 inspect/external-research，或 steps[0] 是动作原语 | downgrade（→ silent） | gate.js:870-883 |
 | GA17 | 第一步对象对上素材 | 素材里的字面路径锚点、第一步落点都写成一条事实 | unsure（不降级，交 arbiter） | gate.js:825-848 |
 | GA18 | 来源可核（solution） | 方案没写 bl-id，或写的 bl-id 不在本拍已定方案池里 | downgrade（→ ask） | gate.js:494-521 |
@@ -289,7 +289,7 @@ outbound 目标不在白名单里：${outside.join('、')}（现在配的是 ${s
 
 **防什么**：模型退回老的单格写法——不写「先读什么、读到哪里停、读完动什么」，直接给一个改动。
 
-**判据**：候选必须是两段式（有 `read`/`action` 两栏），否则记 unsupported。①step1 的 `read`/`abortIf` 非空、`verdict ∈ {continue, abort}`，缺一即命中（827-828）。②`verdict==='abort'` 时不许有 `step2.change`（829-833）。③单段读（`action===null`）：动机必须是 `hygiene`/`status`，全拍只许一格（`singleReadCount`），不许写 step2，`idea` 非空，`plan.steps` ≥1，`undo.howto` 要过 `checkUndoHowto`（834-854）。④continue：必须有 `step2` 且 `step2.change` 非空，且 `plan.steps` 里要能解析出 A 那个原语（855-867）。
+**判据**：候选必须是两段式（有 `read`/`action` 两栏），否则记 unsupported。①step1 的 `read`/`abortIf` 非空、`verdict ∈ {continue, abort}`，缺一即命中（827-828）。②`verdict==='abort'` 时不许有 `step2.change`（829-833）。③单段读（`action===null`）：动机必须是 `hygiene`/`status`，全拍只许一格（`singleReadCount`），不许写 step2，`idea` 非空，`plan.steps` ≥1，`undo.howto` 要过 `checkUndoHowto`（834-854）。④continue：必须有 `step2` 且 `step2.change` 非空，且 `plan.steps` 里要能解析出 A 那个原语（855-867）。⑤读盘可核：`checkPlan` 的 `context.readPaths` 是本拍子 agent 实际 read 过的路径集合（proposer 从 stage2 的 `toolStats.readPaths` 逐轮累计），与 `step1.read` 里认出来的路径（`~/…` / `/…` / 带扩展名的相对路径，去行号、展开 `~`、按后缀归一）比对：一处命中即放行，一处都不中才判不通过（downgrade）。
 
 **why 模板原文**：
 
@@ -298,11 +298,12 @@ outbound 目标不在白名单里：${outside.join('、')}（现在配的是 ${s
 step1.verdict=abort 却写了 step2.change：读了判断不动，就不该有第二步
 这一拍有 ${singleReadCount} 格单段读，全拍只许一格
 plan.steps 里没有动作那一步：候选 ${candidate.id} 的 A 是 ${mainPrimitive}，steps 里得出现它
+step1.read 说是读了「${claimed.join('、')}」，但这一拍子 agent 的 read 一次都没碰过它（实际读过：${shown}）
 ```
 
 **处置与重写**：downgrade，code=`GA15`，原判 `silent`。进重写，用满落 `silent`。
 
-**已知局限**：没有 read/action 两栏的旧平铺候选不再兼容，会落进「单段读」分支按缺 step2 打回；线上 `buildGrid` 恒出两段式，走不到；abort 且三栏齐的方案 `allowDo=true`，会跳过终审直接收工（rewrite.js:137-139）。
+**已知局限**：没有 read/action 两栏的旧平铺候选不再兼容，会落进「单段读」分支按缺 step2 打回；线上 `buildGrid` 恒出两段式，走不到；abort 且三栏齐的方案 `allowDo=true`，会跳过终审直接收工（rewrite.js:137-139）。读盘那一条只认 `read` 工具：`bash cat` / `grep` 读到的内容不算读过；不传 `readPaths` 的调用方（replay、老测试）不判，老行为不变；`step1.read` 里认不出路径时进 `unsupported`（未核），不按不合格拒。
 
 ## GA16：第一步是只读
 
