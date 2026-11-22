@@ -34,6 +34,23 @@
         # 23.66 = 23:40（小数小时，支持到分钟）
         quietStart: 23.66
         quietEnd: 8
+        # ── 夜间模式（2026-11-22）──────────────────────────────────────────
+        # 安静时段不再整夜停摆：照常提议 + 裁决，只是两个出口换掉——
+        #   ask → 写进 dsh-backlog 的工单池一条「待办」（note 带来源/理由/提议原文，
+        #         同一条不重复入池），第二天等人决定；
+        #   do  → 进 nightTicket 队列（**不过期**），早上窗口恢复且主会话 idle 时
+        #         才按顺序向主会话提开票申请（ego 自己仍不碰 dispatch_open）。
+        # 窗口就复用上面的 quietStart~quietEnd，不另配时段。
+        # =false 回到老行为：安静时段一拍不跑、只记一行「跳过」。
+        # 改这个值要重启宿主才生效（patch 是 apply 时读的）。
+        nightMode: true
+        # 每夜上限：0 = 不限（默认）。设成 >0 就只让前 N 条入池，超出的只记日志，
+        # 留给以后想收口时改配置，不用再动代码。
+        nightMaxDo: 0
+        nightMaxAsk: 0
+        # 早上的汇总：窗口恢复后发一条 followup，说清昨夜记了几条、还压着几张申请；
+        # =false 就只入池不说话（工单池里自己看）。
+        nightDigest: true
         privateOnly: true
         # 空串 = 等用户在私聊里说一句，插件自己学
         targetSession: ''
@@ -239,3 +256,19 @@
           # 只给 read：让它能看一眼文件（判锚点合不合理），但只许看，不许改、不许开票、不许 exec
           allow:
             - read
+
+        # ── E2：judge 第二意见（本地 gemini-decision 桥）─────────────────────────
+        # 终审判 do 之后多问一次本机桥（默认 127.0.0.1:3427/systemone），只做保守方向：
+        # 桥判 ask 且 confidence ≥ minConfidence 时，这一拍就地降级成 ask（只多问一句、不多做）；
+        # 桥回 do / 置信度不够 / 超时 / 校验不过，一律用 judge 的原结论。
+        # 默认关：关着时一次请求都不发，judge 输出与接入前逐字一致。
+        # 六项校验在 lib/gemini-decision.js：2xx / answers 形状 / 候选 / prob 键集合 / Σp / confidence 一致。
+        geminiDecision:
+          enabled: false
+          # 本机桥地址；插件不读 key（鉴权在桥的 systemd EnvironmentFile 里）
+          baseUrl: http://127.0.0.1:3427
+          model: gemini-decision-1
+          # 单次请求超时；到点整条建议作废，judge 原结论照走
+          timeoutMs: 2500
+          # 只有 p(ask) 到这条线才允许把 do 降成 ask
+          minConfidence: 0.9
