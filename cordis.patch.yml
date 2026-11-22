@@ -131,6 +131,13 @@
           stage2MaxTokens: 8000
           # 打回重写最多几次（默认 3，允许 1~5；越界夹到边界并 warn，不拒加载）
           maxRewrite: 3
+          # GA15 读盘证据口径：off / missing（默认）/ strict。
+          #   off     老行为：没拿到本拍 readPaths 就不判这一条；
+          #   missing 没拿到 readPaths（引擎漏传 / 重放老记录）判「证据不足」，不当合格放行；
+          #   strict  连 step1.read 认不出文件路径（只写 memory_recall 那种）也判证据不足。
+          # ⚠ strict 会把全靠记忆的提议全打回（2026-11-22 那 9 条会 0 条过），
+          # 先别开，等子 agent 的 read/glob/grep 工具面真能用再考虑。默认 missing 不影响线上拍。
+          # readEvidence: missing
           # 素材池：写进提示词的思考方向，开源版默认这 9 条通用方向（最后一条是优化插件自己），
           # 外加一条「取已定方案并落地」（solution，需要 dsh-backlog 里有「已定方案」条目才会出候选）。
           # 每条一个对象，motivation 是动机档位（backlog / hygiene / sync / social / memory / status / self / solution）；

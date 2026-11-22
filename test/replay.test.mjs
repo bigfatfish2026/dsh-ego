@@ -96,6 +96,16 @@ test('重放：gate 规则没变、plan 也没变 → same', async () => {
   assert.deepEqual(out.notes, ['ga_hits 没变']);
 });
 
+test('重放：GA15 读盘口径可选——默认 off 只比规则变化，显式 missing 把「没读证据」判出来', async () => {
+  const same = await replayPlan(record(), { nowMs: Date.parse('2026-11-11T21:00:00+08:00') });
+  assert.equal(same.changed, 'same', '默认 off：老记录没有 readPaths，不拿它判 worse');
+  assert.equal(same.after.some((one) => one.ga === 'GA15'), false);
+
+  const missing = await replayPlan(record(), { nowMs: Date.parse('2026-11-11T21:00:00+08:00'), readEvidence: 'missing' });
+  assert.equal(missing.changed, 'worse');
+  assert.equal(missing.after.some((one) => one.ga === 'GA15' && one.action === 'downgrade'), true, '显式 missing 才判证据不足');
+});
+
 test('重放：vetoEnabled=false 时不看否决台账；记录里 veto 命中就算 worse→better', async () => {
   const vetoed = record({ gate: { ok: true, allowDo: true, hits: [], items: [] }, veto: { ok: false, hit: { rule: 'V1' }, ran: true } });
   const on = await replayPlan(vetoed);

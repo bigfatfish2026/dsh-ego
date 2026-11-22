@@ -1003,9 +1003,52 @@ test('GA15：step1.read 声称读过的路径，本拍 read 一次没碰就打�
   });
   assert.equal(prose.hits.includes('GA15'), false, JSON.stringify(prose.downgrade));
 
-  // 不传 readPaths（replay / 老调用方）：这一条不判，老行为不变
+  // 不传 readPaths 时按调用侧口径决定（三档见 lib/gate.js 的 READ_EVIDENCE_MODES）：
+  // 没写 readEvidence = 纯函数老口径 off，第三方老调用方行为不变
   const bare = checkStage2Plan(plan(), { candidates: [candidate()] });
   assert.equal(bare.hits.includes('GA15'), false);
+  const explicitOff = checkStage2Plan(plan(), { candidates: [candidate()], readEvidence: 'off' });
+  assert.equal(explicitOff.hits.includes('GA15'), false, 'off 显式回老行为');
+
+  // missing（线上引擎 / replay 传的就是这一档）：没传 readPaths 判证据不足，不能当合格
+  const missing = checkStage2Plan(plan(), { candidates: [candidate()], readEvidence: 'missing' });
+  const missingFail = missing.downgrade.find((one) => one.ga === 'GA15');
+  assert.ok(missingFail, JSON.stringify(missing.downgrade));
+  assert.match(missingFail.why, /readPaths 缺失/);
+  assert.match(missingFail.why, /证据不足/);
+  assert.equal(missing.ok, true, '可重写降级，不是硬拒');
+});
+
+test('GA15：strict 档把「只靠记忆检索」的 step1.read 也判证据不足，但真读过可核路径照旧放行', () => {
+  const HOME = '/home/julia';
+  const GATE = `${HOME}/fatfish/plugins/dsh-ego/lib/gate.js`;
+  // 2026-11-22 那 9 条提议的写法：step1.read 全是记忆检索，一个文件路径都认不出
+  const memoryOnly = plan({
+    step1: {
+      read: 'memory_recall 两次：工单池盘点条目与 plans 目录盘点条目；这一拍没有 read 工具，一个文件都没打开',
+      verdict: 'continue',
+      abortIf: 'x',
+    },
+  });
+  const missingMode = checkStage2Plan(memoryOnly, { candidates: [candidate()], readPaths: [], readEvidence: 'missing' });
+  assert.equal(missingMode.hits.includes('GA15'), false, 'missing 只管 readPaths 缺失，认不出路径仍是 unsupported');
+  assert.ok(missingMode.unsupported.some((one) => one.ga === 'GA15'), '老口径：记一条未核就放行');
+
+  const strict = checkStage2Plan(memoryOnly, { candidates: [candidate()], readPaths: [], readEvidence: 'strict' });
+  const strictFail = strict.downgrade.find((one) => one.ga === 'GA15');
+  assert.ok(strictFail, JSON.stringify(strict.downgrade));
+  assert.match(strictFail.why, /证据不足/);
+  assert.equal(strictFail.code, 'GA15');
+  assert.equal(strictFail.originalAction, 'silent', '用满重写次数落回原本的拒');
+
+  // strict 不是一律拦：step1.read 认得出路径、本拍又真读过 → 放行
+  const strictOk = checkStage2Plan(plan(), {
+    candidates: [candidate()],
+    readPaths: [GATE],
+    home: HOME,
+    readEvidence: 'strict',
+  });
+  assert.equal(strictOk.hits.includes('GA15'), false, JSON.stringify(strictOk.downgrade));
 });
 
 const SINGLE_CANDIDATE = (over = {}) => candidate({ primitive: 'inspect', motivation: 'hygiene', defaults: { impact: 'read', reversibility: 'auto' }, ...over });

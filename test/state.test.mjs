@@ -166,3 +166,27 @@ test('lastActionCells：动作格连续两拍冷却那一栏，坏的丢掉、�
 
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('materialCooldowns：老 state 没有这一栏给空账，坏值不炸，写下去读回来还在', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-ego-matcool-'));
+  const file = path.join(dir, 'state.json');
+  try {
+    const legacy = defaultState();
+    delete legacy.materialCooldowns;
+    fs.writeFileSync(file, JSON.stringify(legacy), 'utf8');
+    assert.deepEqual(readState(file).materialCooldowns, {}, '缺一栏补空账');
+
+    fs.writeFileSync(file, JSON.stringify({ ...legacy, materialCooldowns: ['坏', '值'] }), 'utf8');
+    assert.deepEqual(readState(file).materialCooldowns, {}, '数组/坏值当空账');
+
+    fs.writeFileSync(file, JSON.stringify({ ...legacy, materialCooldowns: { abcd1234: T0, '': T0, x: 'abc' } }), 'utf8');
+    assert.deepEqual(readState(file).materialCooldowns, { abcd1234: T0 }, '只留非空 key + 正数毫秒');
+
+    const state = defaultState();
+    state.materialCooldowns = { abcd1234: T0 };
+    assert.equal(writeState(file, state), true);
+    assert.deepEqual(readState(file).materialCooldowns, { abcd1234: T0 }, '往返不掉');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

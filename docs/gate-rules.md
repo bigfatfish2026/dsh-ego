@@ -303,7 +303,7 @@ step1.read 说是读了「${claimed.join('、')}」，但这一拍子 agent 的 
 
 **处置与重写**：downgrade，code=`GA15`，原判 `silent`。进重写，用满落 `silent`。
 
-**已知局限**：没有 read/action 两栏的旧平铺候选不再兼容，会落进「单段读」分支按缺 step2 打回；线上 `buildGrid` 恒出两段式，走不到；abort 且三栏齐的方案 `allowDo=true`，会跳过终审直接收工（rewrite.js:137-139）。读盘那一条只认 `read` 工具：`bash cat` / `grep` 读到的内容不算读过；不传 `readPaths` 的调用方（replay、老测试）不判，老行为不变；`step1.read` 里认不出路径时进 `unsupported`（未核），不按不合格拒。
+**已知局限**：没有 read/action 两栏的旧平铺候选不再兼容，会落进「单段读」分支按缺 step2 打回；线上 `buildGrid` 恒出两段式，走不到；abort 且三栏齐的方案 `allowDo=true`，会跳过终审直接收工（rewrite.js:137-139）。读盘那一条只认 `read` 工具：`bash cat` / `grep` 读到的内容不算读过。`context.readEvidence` 三档（配置 `proposer.readEvidence`）：`off` 没传 `readPaths` 就不判；`missing`（默认，线上引擎与 replay 显式传）没传 `readPaths` 判「证据不足」；`strict` 连 `step1.read` 认不出可核路径（只写 `memory_recall`）也判证据不足——strict 会把 2026-11-22 那种全靠记忆的提议 9 条全打回，等工具面可用再开。
 
 ## GA16：第一步是只读
 

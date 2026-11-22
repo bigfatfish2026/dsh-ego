@@ -5,10 +5,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  MATERIAL_COOLDOWN_MS,
   PROPOSER_MOTIVATIONS,
   SELF_OPTIMIZE_COOLDOWN_MS,
   buildProposerPrompt,
   filterMaterialsByCooldown,
+  materialCoolingKeys,
+  materialKeyOf,
+  normalizeMaterialCooldowns,
   normalizeMaterials,
   parseProposal,
   validateIdea,
@@ -124,6 +128,34 @@ test('冷却过期或从没提过：素材池原样不动', () => {
 
   // 老 state 没有这个字段也不能崩
   assert.deepEqual(filterMaterialsByCooldown(MATERIALS, { state: { lastSelfIdeaAt: 0 }, now }).materials, MATERIALS);
+});
+
+test('素材内容级冷却：同一句话 12 小时内剔掉，到期自己恢复', () => {
+  const now = Date.parse('2026-11-10T12:00:00Z');
+  const text = '陈旧的备份、日志、临时文件是不是该清了';
+  const key = materialKeyOf(text);
+  assert.equal(key, materialKeyOf(`  ${text}\n`), '空白/换行不影响 key');
+  assert.notEqual(key, materialKeyOf('yaml / 配置里有没有没人用的项'), '不同素材不同 key');
+
+  const hot = filterMaterialsByCooldown(MATERIALS, { state: { materialCooldowns: { [key]: now - 60 * 60 * 1000 } }, now });
+  assert.equal(hot.cooled, 1, '1 小时前提过 → 只剔这一条');
+  assert.equal(hot.materials.some((item) => item.text === text), false);
+  assert.equal(hot.materials.length, MATERIALS.length - 1, '别的方向照旧可用');
+
+  const expired = filterMaterialsByCooldown(MATERIALS, {
+    state: { materialCooldowns: { [key]: now - MATERIAL_COOLDOWN_MS - 1000 } },
+    now,
+  });
+  assert.equal(expired.cooled, 0, '12 小时一过自动恢复，没有永久冻死');
+  assert.deepEqual(expired.materials, MATERIALS);
+
+  // 坏 state / 老 state：当没提过
+  assert.equal(normalizeMaterialCooldowns('坏值').constructor, Object);
+  assert.deepEqual(normalizeMaterialCooldowns(null), {});
+  assert.deepEqual(normalizeMaterialCooldowns({ '': now, x: -1, y: 'abc', z: now }), { z: now });
+  assert.equal(materialCoolingKeys({ x: now - 60 * 1000 }, { now }).has('x'), true);
+  assert.equal(materialCoolingKeys({ x: now - MATERIAL_COOLDOWN_MS }, { now }).has('x'), false);
+  assert.equal(filterMaterialsByCooldown(MATERIALS, { state: {}, now }).cooled, 0);
 });
 
 /* ── 素材池对象形态（两阶段第一批） ─────────────────────── */

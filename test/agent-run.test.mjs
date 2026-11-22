@@ -59,7 +59,7 @@ function fakeAgent({ text = '{"ok":true}', hang = false, finish, turnEndError: t
 }
 
 function harness({ agent = fakeAgent(), createError, hang = false, visible, restrictError } = {}) {
-  const seen = { create: [], restrict: [], disposed: 0, logs: [], unrestricted: 0 };
+  const seen = { create: [], restrict: [], guards: [], disposed: 0, logs: [], unrestricted: 0 };
   const deps = {
     log: (line) => seen.logs.push(line),
     uuid: () => 'uuid-fixed',
@@ -73,6 +73,10 @@ function harness({ agent = fakeAgent(), createError, hang = false, visible, rest
           seen.gets ??= [];
           seen.gets.push({ name, scope });
           return !visible || visible.includes(name) ? { name } : undefined;
+        },
+        guard: (fn) => {
+          seen.guards.push(fn);
+          return () => {};
         },
         restrict: (filter) => {
           seen.restrict.push(filter);
@@ -124,9 +128,9 @@ test('正常跑完：建 agent、restrict 一次、塞提示词、取到文本�
 
   const created = seen.create[0];
   assert.equal(created.sessionId, 'uuid-fixed', 'sessionId 用裸 uuid');
-  // header 的 origin 只允许 'subagent'（dsh-session lib/index.js:1097），传了就等于自认子代理；
-  // 这里断言的是「这个键根本不出现」，不是换成别的值
-  assert.equal('origin' in created.meta, false, 'meta 里不许带 origin，helper 会话不是子代理');
+  // header 的 origin 只允许 'subagent'（dsh-session lib/index.js:1097），
+  // 标成 worker 后 dispatcher 只挂 deny，ego 自己的 allow 才是真上限
+  assert.equal(created.meta.origin, 'subagent', 'helper 必须标成 worker（subagent），否则 dispatcher 按主会话剪工具面');
   assert.equal(created.meta.agentPreset, 'dsh-ego');
   assert.equal('parentAgent' in created, false, '临时 agent 不许挂 parentAgent');
   assert.deepEqual(created.agentOptions, { provider: 'example-provider', model: 'example-model', maxTokens: 800 });
@@ -429,7 +433,7 @@ test('assistantTurns：数模型往返了几轮，跑完的返回里也带这个
   );
 });
 
-test('openAgentSession 建会话同样不带 origin：stage2 这条可续接的 helper 不是子代理', async () => {
+test('openAgentSession 建会话同样标 origin=subagent：stage2 走 dispatcher 的 worker 分支', async () => {
   const { deps, seen } = harness();
   const opened = await openAgentSession(deps, {
     kind: 'stage2',
@@ -440,9 +444,35 @@ test('openAgentSession 建会话同样不带 origin：stage2 这条可续接的 
   });
 
   assert.equal(opened.ok, true, opened.ok ? '' : opened.error);
-  assert.equal('origin' in seen.create[0].meta, false, 'meta 里不许带 origin');
+  assert.equal(seen.create[0].meta.origin, 'subagent', 'stage2 必须标成 worker，read/glob/grep 才不会被 router 白名单剪掉');
   assert.equal(seen.create[0].meta.agentPreset, 'dsh-ego-proposer', 'agentPreset 要保留');
 
   await opened.dispose();
   assert.equal(seen.disposed, 1, 'dispose 必须调用一次');
+});
+
+test('helper 的 setup 挂了 read 守卫：凭据类路径被拒，普通文件照旧', async () => {
+  const { deps, seen } = harness();
+  const result = await runAgent(deps, base);
+  assert.equal(result.ok, true);
+  assert.equal(seen.guards.length, 1, 'runAgent 的 setup 里要挂一道 guard');
+
+  const guard = seen.guards[0];
+  assert.match(
+    guard({ name: 'read', arguments: { file_path: '~/.dsh/.env' } }),
+    /凭据类路径/,
+    '读 .env 必须被拦',
+  );
+  assert.equal(guard({ name: 'read', arguments: { file_path: '/home/julia/fatfish/plugins/dsh-ego/lib/gate.js' } }), undefined);
+  assert.equal(guard({ name: 'memory_recall', arguments: { query: 'x' } }), undefined, '别的工具不经过这道守卫');
+
+  const opened = await openAgentSession(deps, {
+    kind: 'stage2',
+    allow: ['read'],
+    timeoutMs: 200,
+    agentPreset: 'dsh-ego-proposer',
+  });
+  assert.equal(opened.ok, true, opened.ok ? '' : opened.error);
+  assert.equal(seen.guards.length, 2, 'openAgentSession 的 setup 里也要挂一道');
+  await opened.dispose();
 });

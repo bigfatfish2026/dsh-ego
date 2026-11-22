@@ -31,6 +31,7 @@ import {
   normalizeComboKey,
 } from '../lib/grid.js';
 import { EXIST_STATUS, checkExists, checkFileLine } from '../lib/exists.js';
+import { MATERIAL_COOLDOWN_MS, materialKeyOf } from '../lib/proposer.js';
 
 const NOW = Date.parse('2026-11-10T12:00:00Z');
 const HOUR = 60 * 60 * 1000;
@@ -179,6 +180,32 @@ test('自指冷却 12 小时：self 方向与提到 dsh-ego 的素材都被剔',
     buildGrid({ materials: disguised, primitives: ALL_PRIMITIVES, objects: ALL_OBJECTS, lastSelfIdeaAt: NOW - HOUR, now: NOW }),
     [],
   );
+});
+
+test('素材内容冷却 12 小时：同一句话窗口内换哪个格都不进池，到期恢复', () => {
+  const stale = { text: '陈旧的备份、日志、临时文件是不是该清了', motivation: 'hygiene' };
+  const usedAt = (msAgo) => ({ [materialKeyOf(stale.text)]: NOW - msAgo });
+  const base = { materials: [stale], primitives: ALL_PRIMITIVES, objects: ALL_OBJECTS, now: NOW };
+
+  // 1 小时前提过：这条素材整条不进池，全开格池也配不出候选（不是只剔那一对）
+  assert.deepEqual(buildGrid({ ...base, materialCooldowns: usedAt(HOUR) }), [], '冷却期内没候选');
+  assert.deepEqual(buildGrid({ ...base, materialCooldowns: usedAt(HOUR), maxCandidates: 99 }), [], '换多少格都认同一句话');
+
+  // 12 小时一过自己恢复，不需要清 state
+  assert.ok(buildGrid({ ...base, materialCooldowns: usedAt(MATERIAL_COOLDOWN_MS + 1000) }).length > 0, '到期要放回来');
+  // 只影响这一条，别的方向照旧出候选
+  const other = { text: '宿主状态：温度、内存、磁盘、服务、日志', motivation: 'status' };
+  const mixed = buildGrid({
+    materials: [stale, other],
+    primitives: ALL_PRIMITIVES,
+    objects: ALL_OBJECTS,
+    now: NOW,
+    materialCooldowns: usedAt(HOUR),
+  });
+  assert.ok(mixed.length > 0, '别受牵连');
+  assert.equal(mixed.some((c) => c.material === stale.text), false);
+  // 老 state 没有这一栏：顺序与内容跟没传时逐字一致
+  assert.deepEqual(grid({ materialCooldowns: {} }), grid());
 });
 
 test('recentCombos 只认对：整对剔掉，老的单格格式不算对', () => {

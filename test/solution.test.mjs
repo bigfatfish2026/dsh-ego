@@ -32,11 +32,12 @@ import {
   STAGE2_MOTIVATION_RULES,
   checkStage2Plan,
 } from '../lib/gate.js';
-import { buildStage2Prompt, buildStage2RewritePrompt } from '../lib/proposer.js';
+import { buildStage2Prompt, buildStage2RewritePrompt, renderSolutionPoolLines } from '../lib/proposer.js';
 import { applySolutionGoal } from '../lib/engines/proposer.js';
 import {
   buildSolutionGoal,
   createSolutionPoolProvider,
+  findSolutionPlanFile,
   loadSolutionPool,
   resolveSolutionItem,
   solutionIdInPlan,
@@ -203,8 +204,51 @@ test('取池：只 SELECT 已定方案，按 updated_at 升序，读不到不抛
   }
 });
 
-/* ── 三、grid：solution 素材只挂 plan，池空整条不进候选 ───────────── */
+test('短号命中全号方案文档：backlog-bl-*-<短号>.md，别的短号不许误命中', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-ego-solution-suffix-'));
+  try {
+    const plansDir = path.join(dir, 'plans');
+    fs.mkdirSync(plansDir, { recursive: true });
+    const file = makeBacklogDb(dir);
+    // 库里那条只剩 4 位短号（2026-11-22 日志里的 b40e 就是这样），真名落盘是全号
+    const db = new DatabaseSync(file);
+    db.prepare('DELETE FROM backlog WHERE id = ?').run(BL);
+    db.prepare('DELETE FROM backlog WHERE id = ?').run(OTHER_BL);
+    db.prepare(
+      `INSERT INTO backlog (id, title, status, note, ticket_ids, created_at, updated_at)
+       VALUES ('b40e', '探路 declare 后执行轮不自动续派', '已定方案', 'note 里只有摘要', '[]', ?, ?)`,
+    ).run('2026-11-22T00:00:00Z', '2026-11-22T00:00:00Z');
+    db.close();
 
+    // 同前缀、不同短号的文档：短号 b40e 不许拿它顶
+    fs.writeFileSync(path.join(plansDir, 'backlog-bl-mwn2jrdm-b40f.md'), '# 别的工单\n');
+    assert.equal(findSolutionPlanFile('b40e', { plansDir }), '', '短号必须整段相等，b40f 不算命中');
+
+    // 改前口径：只认精确名 backlog-b40e.md，全号文档存在也判「没有文档」
+    const before = await loadSolutionPool({ file, plansDir });
+    assert.equal(before[0].hasPlanFile, false);
+    assert.equal(before[0].planFile, path.join(plansDir, 'backlog-b40e.md'));
+    const beforeLines = renderSolutionPoolLines(before);
+    assert.ok(beforeLines.some((line) => line.includes('note：')), '没有文档时提示词只给 note，模型就会去重写一份');
+
+    // 全号文档落盘后：hasPlanFile 翻真，池行给的是盘上真实路径
+    fs.writeFileSync(path.join(plansDir, 'backlog-bl-mwn2jrdm-b40e.md'), '# 全号方案\n');
+    const after = await loadSolutionPool({ file, plansDir });
+    assert.equal(after[0].hasPlanFile, true);
+    assert.equal(after[0].planFile, path.join(plansDir, 'backlog-bl-mwn2jrdm-b40e.md'));
+    const afterLines = renderSolutionPoolLines(after);
+    assert.ok(afterLines.some((line) => line.includes('方案文件') && line.includes('backlog-bl-mwn2jrdm-b40e.md')));
+    assert.equal(afterLines.some((line) => line.includes('note：')), false, '有文档就不许再退化成 note 摘要');
+
+    // 全号 id 照旧能命中全号文档；目录不在不抛
+    assert.equal(findSolutionPlanFile('bl-mwn2jrdm-b40e', { plansDir }), path.join(plansDir, 'backlog-bl-mwn2jrdm-b40e.md'));
+    assert.equal(findSolutionPlanFile('b40e', { plansDir: path.join(dir, 'nope') }), '');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/* ── 三、grid：solution 素材只挂 plan，池空整条不进候选 ───────────── */
 test('grid：solution 素材命中 plan 不命中 ticket；池非空出「读方案 → 改文件」候选', () => {
   const hints = materialHintsOf(SOLUTION_MATERIAL, 'solution');
   assert.ok(hints.objects.has('plan'), '「已定方案 / 方案正文」→ plan');
