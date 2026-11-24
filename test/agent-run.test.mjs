@@ -58,8 +58,8 @@ function fakeAgent({ text = '{"ok":true}', hang = false, finish, turnEndError: t
   return agent;
 }
 
-function harness({ agent = fakeAgent(), createError, hang = false, visible, restrictError } = {}) {
-  const seen = { create: [], restrict: [], guards: [], disposed: 0, logs: [], unrestricted: 0 };
+function harness({ agent = fakeAgent(), createError, hang = false, visible, restrictError, mountError, presets } = {}) {
+  const seen = { create: [], restrict: [], guards: [], mounts: [], disposed: 0, logs: [], unrestricted: 0 };
   const deps = {
     log: (line) => seen.logs.push(line),
     uuid: () => 'uuid-fixed',
@@ -89,14 +89,25 @@ function harness({ agent = fakeAgent(), createError, hang = false, visible, rest
           };
         },
       };
-      // setup 必须被调用：过滤 + restrict 都发生在里面，第二个参数是子 agent
+      // 宿主 agentPresets 服务：默认 mount 成功并记下 id；给 mountError 就模拟档不存在，
+      // 给 presets（含 null）就整体替换这个服务。
+      const presetService = presets !== undefined
+        ? presets
+        : {
+            async mount(ctx, id) {
+              seen.mounts.push({ ctx, id });
+              if (mountError) throw mountError;
+            },
+          };
+      const get = (name) => (name === 'agentPresets' ? presetService : undefined);
+      // setup 必须被调用：挂档 + 过滤 + restrict 都发生在里面，第二个参数是子 agent
       seen.setup = options.setup;
-      const setupResult = options.setup({ tools }, { id: 'child-agent' });
-      seen.setupResult = setupResult;
       // 复刻宿主 dsh-agent-loop 0.2.2-rc.1 lib/index.js:1574-1576：
       //   const setupCommit = await setup?.(agent.ctx, agent);
       //   setupCommit?.commit();
       // 假宿主不这么调，测试就看不见这次的崩法
+      const setupResult = await options.setup({ tools, get }, { id: 'child-agent' });
+      seen.setupResult = setupResult;
       setupResult?.commit();
       if (hang) agent.whenIdle = () => new Promise(() => {});
       return {
@@ -128,13 +139,14 @@ test('正常跑完：建 agent、restrict 一次、塞提示词、取到文本�
 
   const created = seen.create[0];
   assert.equal(created.sessionId, 'uuid-fixed', 'sessionId 用裸 uuid');
-  // header 的 origin 只允许 'subagent'（dsh-session lib/index.js:1097），
-  // 标成 worker 后 dispatcher 只挂 deny，ego 自己的 allow 才是真上限
-  assert.equal(created.meta.origin, 'subagent', 'helper 必须标成 worker（subagent），否则 dispatcher 按主会话剪工具面');
+  // meta 里不许出现 origin：dsh-subagent 的 rootOf 会把 origin === 'subagent' 判成
+  // delegated，而 helper 不在 resident 表里，必抛 agent has no active runtime owner
+  assert.equal('origin' in created.meta, false, 'helper 不能带 origin，否则 dsh-subagent 当成 delegated');
   assert.equal(created.meta.agentPreset, 'dsh-ego');
   assert.equal('parentAgent' in created, false, '临时 agent 不许挂 parentAgent');
   assert.deepEqual(created.agentOptions, { provider: 'example-provider', model: 'example-model', maxTokens: 800 });
   assert.deepEqual(seen.restrict, [{ allow: ['read', 'memory_recall'] }], 'restrict 只在 setup 里调一次');
+  assert.deepEqual(seen.mounts.map((mount) => mount.id), ['dsh-ego'], '按 agentPreset 显式 mount 一次');
 
   assert.equal(agent.followups.length, 1);
   assert.equal(agent.followups[0].content[0].text, '想一个点子');
@@ -433,7 +445,7 @@ test('assistantTurns：数模型往返了几轮，跑完的返回里也带这个
   );
 });
 
-test('openAgentSession 建会话同样标 origin=subagent：stage2 走 dispatcher 的 worker 分支', async () => {
+test('openAgentSession 建会话同样不带 origin：helper 不走 delegated 分支', async () => {
   const { deps, seen } = harness();
   const opened = await openAgentSession(deps, {
     kind: 'stage2',
@@ -444,11 +456,27 @@ test('openAgentSession 建会话同样标 origin=subagent：stage2 走 dispatche
   });
 
   assert.equal(opened.ok, true, opened.ok ? '' : opened.error);
-  assert.equal(seen.create[0].meta.origin, 'subagent', 'stage2 必须标成 worker，read/glob/grep 才不会被 router 白名单剪掉');
+  assert.equal('origin' in seen.create[0].meta, false, 'stage2 也不能带 origin，否则 dsh-subagent 判成 delegated 抛 agent has no active runtime owner');
   assert.equal(seen.create[0].meta.agentPreset, 'dsh-ego-proposer', 'agentPreset 要保留');
+  assert.deepEqual(seen.mounts.map((mount) => mount.id), ['dsh-ego-proposer'], '可续接 helper 也要挂对应档');
 
   await opened.dispose();
   assert.equal(seen.disposed, 1, 'dispose 必须调用一次');
+});
+
+test('mount 失败不挡建 helper：warn 一行，按无档继续 restrict 并跑完', async () => {
+  const { deps, seen, agent } = harness({ mountError: new Error('unknown agent preset: dsh-ego') });
+  const result = await runAgent(deps, base);
+
+  assert.equal(result.ok, true, '档不存在也不能让 helper 建不出来');
+  assert.equal(result.text, '{"ok":true}');
+  assert.equal(seen.mounts.length, 1, '仍然尝试过一次 mount');
+  assert.deepEqual(seen.restrict, [{ allow: ['read', 'memory_recall'] }], '挂档失败仍按 ego 自己的 allow 收紧');
+  assert.equal(agent.followups.length, 1, '照常把提示词塞进去');
+  assert.ok(
+    seen.logs.some((line) => line.includes('挂档 dsh-ego 失败') && line.includes('按无档继续')),
+    `要 warn 一行，实际：${seen.logs.join(' | ')}`,
+  );
 });
 
 test('helper 的 setup 挂了 read 守卫：凭据类路径被拒，普通文件照旧', async () => {

@@ -280,7 +280,7 @@ test('openAgentSession：两版 plan 都 followup 到同一个 agent，只 creat
     async create(options) {
       created += 1;
       assert.equal(options.sessionId, 'fixed-uuid');
-      const setupResult = options.setup({ tools: { get: () => ({ name: 'read' }), restrict: () => {} } }, { id: 'child' });
+      const setupResult = await options.setup({ tools: { get: () => ({ name: 'read' }), restrict: () => {} } }, { id: 'child' });
       setupResult?.commit();
       return {
         agent,
