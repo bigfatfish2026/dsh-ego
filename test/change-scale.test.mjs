@@ -233,9 +233,10 @@ test('loadScaleHistory：文件没变就复用整表（mtime+size 缓存）', as
   assert.equal(replays, 1, '第二次不重放');
 });
 
-test('loadScaleHistory：真实 plans.jsonl 与 combo 共用一次读盘（283 行）', { skip: !fs.existsSync('/home/julia/.dsh-ego/plans.jsonl') }, async () => {
+test('loadScaleHistory：真实 plans.jsonl 与 combo 共用一次读盘', { skip: !fs.existsSync('/home/julia/.dsh-ego/plans.jsonl') }, async () => {
   const out = await loadScaleHistory({ file: '/home/julia/.dsh-ego/plans.jsonl' });
-  assert.equal(out.rows, 283);
+  // 文件每拍都在长，别把行数写死（写死 283 会在下一拍变红）；只核「读得动、有条目」
+  assert.ok(out.rows >= 283, `rows=${out.rows}`);
   assert.ok(out.table.size > 0);
   assert.ok(out.ms >= 0);
 });

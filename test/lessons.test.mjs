@@ -19,11 +19,13 @@ import {
   DEFAULT_LESSONS_PATH,
   LESSON_MAX,
   LESSON_MIN_NEW_REJECTIONS,
+  LESSON_PER_PRIMITIVE_MAX,
   LESSON_PROMPT_MAX,
   collectRejections,
   consolidateIfDue,
   consolidateLessons,
   mergeLessons,
+  primitiveOfRule,
   readLessons,
   renderLessonLines,
   whyKeyOf,
@@ -351,4 +353,59 @@ test('consolidateIfDue：缓存文件读坏时按空表跑，不抛', () => {
   assert.equal(out.bad, 1);
   assert.equal(out.consolidated, false);
   assert.deepEqual(out.lessons, []);
+});
+
+/* ── 每原语配额 ───────────────────────────────────────────────────── */
+
+test('配额：同一原语最多 2 条，其余顺延给别的原语', () => {
+  assert.equal(LESSON_PER_PRIMITIVE_MAX, 2);
+  const group = (id, ruleText, hits) => ({ id, source: 'ga', ruleText, hits, firstSeen: NOW - DAY, lastSeen: NOW });
+  const groups = new Map([
+    ['d1', group('d1', 'delete 这类方案先过 GA6（降级）：影响面是空的', 75)],
+    ['d2', group('d2', 'delete 这类方案先过 GA8（降级）：没有外部证据', 33)],
+    ['d3', group('d3', 'delete 这类方案先过 GA7（降级）：撤回模板没命中', 32)],
+    ['e1', group('e1', 'edit-file 这类方案先过 GA7（降级）：撤回模板没命中', 27)],
+    ['c1', group('c1', 'edit-config 这类方案先过 GA7（降级）：撤回模板没命中', 22)],
+    ['p1', group('p1', 'draft 这类方案先过 GA7（降级）：撤回模板没命中', 19)],
+  ]);
+  const out = mergeLessons([], groups, { nowMs: NOW });
+  assert.equal(out.lessons.length, LESSON_MAX, '总数仍是 5');
+  const prims = out.lessons.map((one) => primitiveOfRule(one.rule));
+  assert.equal(prims.filter((one) => one === 'delete').length, LESSON_PER_PRIMITIVE_MAX);
+  assert.ok(new Set(prims).size >= 4, `覆盖原语 ${prims.join(',')}`);
+  assert.deepEqual(prims, ['delete', 'delete', 'edit-file', 'edit-config', 'draft'], '按 hits 顺延');
+  assert.equal(out.lessons[0].hits, 75);
+});
+
+test('配额：认不出原语的条目（veto / judge 两路）不占配额', () => {
+  const group = (id, ruleText, hits, source = 'ga') => ({ id, source, ruleText, hits, firstSeen: NOW - DAY, lastSeen: NOW });
+  const groups = new Map([
+    ['d1', group('d1', 'delete 这类方案先过 GA6（降级）：影响面是空的', 50)],
+    ['d2', group('d2', 'delete 这类方案先过 GA8（降级）：没有外部证据', 40)],
+    ['d3', group('d3', 'delete 这类方案先过 GA7（降级）：撤回模板没命中', 30)],
+    ['v1', group('v1', '否决台账常拦「no-repeat」：这一格刚做过', 20, 'veto')],
+    ['j1', group('j1', '终审常打回：方案没有可核的锚点', 10, 'judge')],
+    ['e1', group('e1', 'edit-file 这类方案先过 GA7（降级）：撤回模板没命中', 5)],
+  ]);
+  const out = mergeLessons([], groups, { nowMs: NOW });
+  const prims = out.lessons.map((one) => primitiveOfRule(one.rule));
+  assert.equal(prims.filter((one) => one === 'delete').length, 2);
+  assert.ok(prims.includes(''), 'veto / judge 那条照常进来');
+  assert.equal(out.lessons.length, 5);
+});
+
+test('配额：可注入阈值；全是一个原语时宁可少于 5 条也不硬凑', () => {
+  const group = (id, hits) => ({ id, source: 'ga', ruleText: `delete 这类方案先过 ${id}（降级）：x`, hits, firstSeen: NOW - DAY, lastSeen: NOW });
+  const groups = new Map([['g1', group('GA6', 5)], ['g2', group('GA7', 4)], ['g3', group('GA8', 3)]]);
+  assert.equal(mergeLessons([], groups, { nowMs: NOW, maxPerPrimitive: 1 }).lessons.length, 1);
+  assert.equal(mergeLessons([], groups, { nowMs: NOW }).lessons.length, 2);
+});
+
+test('primitiveOfRule：只认 ruleOf 的固定前缀，自由文本给空串', () => {
+  assert.equal(primitiveOfRule('delete 这类方案先过 GA6（降级）：x'), 'delete');
+  assert.equal(primitiveOfRule('edit-file 这类方案先过 GA7（降级）：x'), 'edit-file');
+  assert.equal(primitiveOfRule('否决台账常拦「no-repeat」：这一格刚做过'), '');
+  assert.equal(primitiveOfRule('终审常打回：方案没有可核的锚点'), '');
+  assert.equal(primitiveOfRule(''), '');
+  assert.equal(primitiveOfRule(null), '');
 });

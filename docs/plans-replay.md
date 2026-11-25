@@ -41,7 +41,8 @@ reason 各单独一路），折成最多 5 条规则句写进 `~/.dsh-ego/lesson
 
 - 写盘条件是「距上次 ≥24 小时」且「窗口内拒因 ≥20 条」，不满足就一个字节都不写；
 - 同一条规则跨轮累加 `hits`、刷新 `lastSeen`；14 天没再命中的自动掉出，超过 5 条时留命中多、
-  最近还命中的那几条；
+  最近还命中的那几条；同一个原语最多占 2 条（`LESSON_PER_PRIMITIVE_MAX`，按 rule 前缀
+  `<原语> 这类方案` 认，veto / judge 两路不占配额），免得一个原语把 5 条名额全吃掉；
 - `buildStage2Prompt` 在候选表之后、combo 摘要之前拼一段「近期反复被拦的毛病」，整段 ≤400 字
   （`LESSON_PROMPT_MAX`）、一条 90 字（`LESSON_RULE_MAX`）、0 条不加；combo 摘要已经点名的 GA
   不再重复；
