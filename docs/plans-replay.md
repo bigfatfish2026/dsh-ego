@@ -33,6 +33,20 @@ action 是 reject / downgrade / unsupported）/ `veto`（`{ok, hit, ran}`，没�
 轮转：每次 append 前看一眼，文件超过 20MB 或超过 3000 行就改名成 `.1`（覆盖旧的 `.1`），新文件从空开始。
 行数不每次全量数，按 `stat.size` 命中进程内缓存，对不上才重数。
 
+## 拒因折成规则（lessons）
+
+plans.jsonl 里的 `gate.items` / `veto.hit` / `judge.reason` 平时没人读。`lib/lessons.js` 每拍顺手
+统计最近 14 天的拒因，按「GA 号 + 动作 + why 归一后的前 24 字」计数（veto 的 rule+reason、judge 的
+reason 各单独一路），折成最多 5 条规则句写进 `~/.dsh-ego/lessons.json`：
+
+- 写盘条件是「距上次 ≥24 小时」且「窗口内拒因 ≥20 条」，不满足就一个字节都不写；
+- 同一条规则跨轮累加 `hits`、刷新 `lastSeen`；14 天没再命中的自动掉出，超过 5 条时留命中多、
+  最近还命中的那几条；
+- `buildStage2Prompt` 在候选表之后、combo 摘要之前拼一段「近期反复被拦的毛病」，整段 ≤400 字
+  （`LESSON_PROMPT_MAX`）、一条 90 字（`LESSON_RULE_MAX`）、0 条不加；combo 摘要已经点名的 GA
+  不再重复；
+- 日志：`lessons: N 条｜新增 M｜<ms>ms`；缓存文件读坏时按空表跑，并多一行 `lessons_bad:N`。
+
 ## 跑回归
 
 ```sh

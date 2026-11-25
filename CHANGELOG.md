@@ -4,6 +4,13 @@
 
 ### Added
 
+- **Lessons: fold recurring rejections into the stage2 prompt.** `lib/lessons.js` counts the
+  rejection reasons already stored in `plans.jsonl` (gate reject/downgrade, veto hits, judge
+  reasons) over a 14-day window, folds them into at most 5 rule sentences kept in
+  `~/.dsh-ego/lessons.json` (pruned after 14 days without a hit), and `buildStage2Prompt`
+  carries them as a ≤400-char block after the candidate table, before the combo digest.
+  Recomputation runs at most once per 24 hours and only when the window gained ≥20
+  rejections; the log line is `lessons: N 条｜新增 M｜<ms>ms`.
 - **GA21 justify gate + combo-history routing (stage2).** A stage2 plan now has to answer
   three questions — `justify.gain` / `surface` / `fallback`; missing, vague (under 8 chars
   or pure filler), unanchored (`gain` with no number and no object/file/evidence), or
