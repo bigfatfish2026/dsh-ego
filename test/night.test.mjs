@@ -15,6 +15,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { inNight, inQuiet, speakingWindow } from '../lib/window.js';
+import { createRoundEngine } from '../lib/engines/round.js';
 import {
   ASK_TITLE_MAX,
   askHash,
@@ -27,6 +28,7 @@ import {
   createNightPool,
   limitReached,
   nightKeyOf,
+  trimJournal,
 } from '../lib/night.js';
 import { enqueuePending, pendingCount } from '../lib/pending-queue.js';
 import { prunePending } from '../lib/state.js';
@@ -273,4 +275,161 @@ test('汇总：超长截断，不发一屏', () => {
   const entries = Array.from({ length: 20 }, (_, index) => ({ kind: 'ask', title: `第 ${index} 条很长的待定事项标题` }));
   const text = buildDigestText({ entries, tickets: 0, maxChars: 80 });
   assert.ok([...text].length <= 80);
+});
+
+test('汇总：撞到每夜上限的条目也要报出来（池里/队列里都没有，只报日志等于没说）', () => {
+  const text = buildDigestText({
+    entries: [
+      { kind: 'do', callId: 'c1', title: '改一行配置' },
+      { kind: 'do-skipped', title: '第二条被跳过的活' },
+      { kind: 'do-skipped', title: '第三条被跳过的活' },
+      { kind: 'ask-skipped', title: '被跳过的待定' },
+    ],
+    tickets: 1,
+  });
+  assert.match(text, /另有 待你定 1 条、待开票 2 张 撞到每夜上限/);
+  // 只有「跳过」也要发：否则主人以为这一夜什么都没发生
+  const onlySkipped = buildDigestText({ entries: [{ kind: 'do-skipped', title: 'x' }] });
+  assert.notEqual(onlySkipped, '');
+  assert.match(onlySkipped, /待开票 1 张/);
+});
+
+test('trimJournal：超上限只丢最旧的那几条，返回丢掉的数量', () => {
+  const list = [1, 2, 3, 4].map((n) => ({ n }));
+  assert.equal(trimJournal(list, 10), 0, '没超不动');
+  assert.equal(list.length, 4);
+  assert.equal(trimJournal(list, 2), 2, '丢掉 2 条');
+  assert.deepEqual(list.map((one) => one.n), [3, 4], '留下的是最新的');
+});
+
+/* ── 引擎级：夜间队列的计数与账本 ─────────────────────────── */
+
+/** 按 tick-ticket-gate.test.mjs 同一个 rig 形状搭一个最小引擎（不碰模型/宿主） */
+function makeNightRig({ cfg: cfgOverrides = {} } = {}) {
+  const logs = [];
+  const state = {
+    nextRunAt: 0,
+    retryAfterAt: 0,
+    failStreak: 0,
+    pendingSayQueue: [],
+    pendingTicketQueue: [],
+    pendingNightTicketQueue: [],
+    pendingSeq: 0,
+    ticketRequests: [],
+    ticketSeq: 0,
+    nightJournal: [],
+    nightAskCount: 0,
+    nightDoCount: 0,
+  };
+  const cfg = {
+    enabled: true,
+    dryRun: true,
+    skipWhenTicketsBusy: false,
+    tickIntervalMinutes: 60,
+    diceProbability: 1,
+    delayMaxMinutes: 8,
+    quietStart: 23.66,
+    quietEnd: 8,
+    offPeakOnly: true,
+    holidays: [],
+    privateOnly: false,
+    targetSession: '',
+    maxFailStreak: 3,
+    backoffMinutes: 60,
+    pendingTtlMinutes: 30,
+    nightMode: true,
+    nightMaxDo: 2,
+    nightMaxAsk: 2,
+    nightDigest: true,
+    proposer: { enabled: true },
+    judge: { enabled: true },
+    ...cfgOverrides,
+  };
+  const round = createRoundEngine({
+    cfg,
+    state,
+    save: () => {},
+    log: (line) => logs.push(line),
+    gate: {},
+    ctx: {},
+    proposer: { async propose() {} },
+    adjudicator: { getVetoLedger() {} },
+    scopeOf: () => 'c2c',
+    fmt: (t) => String(t),
+  });
+  return { round, state, cfg, logs };
+}
+
+test('夜间 do：同一条活重判一次不重复入队，也不白吃一张每夜上限', async () => {
+  const { round, state, logs } = makeNightRig();
+  const ticket = { goal: '在 /tmp/x.md 补一行说明', brief: '补一行说明' };
+  const first = await round.queueNightTicket(ticket, 1000);
+  assert.equal(first.ok, true);
+  assert.equal(state.nightDoCount, 1, '第一次真入队，计数 +1');
+  assert.equal(state.pendingNightTicketQueue.length, 1);
+
+  const again = await round.queueNightTicket(ticket, 2000);
+  assert.equal(again.duplicate, true, '同 callId 第二次是 duplicate');
+  assert.equal(state.nightDoCount, 1, '重复入队不加计数（以前会白吃一张额度）');
+  assert.equal(state.pendingNightTicketQueue.length, 1, '队列里还是一条');
+  assert.equal(state.nightJournal.filter((one) => one.kind === 'do').length, 1, '账本里只记一笔真 do');
+  assert.ok(logs.some((line) => line.startsWith('night_do_duplicate:')), '重复要留痕');
+});
+
+test('夜间 do：到上限的条目不进队列，但账本留一笔 do-skipped，日志带票面', async () => {
+  const { round, state, logs } = makeNightRig({ cfg: { nightMaxDo: 1 } });
+  await round.queueNightTicket({ goal: '第一件 /tmp/a', brief: '第一件' }, 1000);
+  const blocked = await round.queueNightTicket({ goal: '第二件 /tmp/b', brief: '第二件' }, 2000);
+  // 到上限是「按配置收手」，不是失败拍：返 ok:false 会涨 failStreak，三拍就连着退避一小时
+  assert.equal(blocked.ok, true);
+  assert.equal(blocked.skipped, true);
+  assert.equal(state.pendingNightTicketQueue.length, 1, '被跳过的不进队列');
+  assert.equal(state.nightJournal.filter((one) => one.kind === 'do-skipped').length, 1, '账本里要留一笔');
+  const line = logs.find((one) => one.startsWith('night_do_skipped:limit'));
+  assert.ok(line, '日志要留');
+  assert.match(line, /第二件/, '日志里要能看出被丢的是哪一条');
+});
+
+test('夜间 ask：到上限的条目不写池，但账本留一笔 ask-skipped', async () => {
+  const { round, state, logs } = makeNightRig({ cfg: { nightMaxAsk: 0 } });
+  // 上限 0 = 不限，先验不拦
+  const unlimited = await round.nightAsk('不限的一条', 1000, { idea: '点子' });
+  assert.equal(unlimited.ok, true);
+
+  const capped = makeNightRig({ cfg: { nightMaxAsk: 1 } });
+  capped.state.nightAskCount = 1; // 这一夜已经记过一条
+  const blocked = await capped.round.nightAsk('第二条要不要开', 2000, { idea: '点子二' });
+  assert.equal(blocked.ok, true, '到上限不算失败拍');
+  assert.equal(blocked.skipped, true);
+  assert.equal(capped.state.nightJournal.filter((one) => one.kind === 'ask-skipped').length, 1);
+  assert.ok(capped.logs.some((line) => line.startsWith('night_ask_skipped:limit') && /第二条要不要开/.test(line)));
+});
+
+test('早上汇总：真 do 与被跳过的 do 分开报，跳过的那几条不会凭空消失', async () => {
+  const { round, state } = makeNightRig({ cfg: { nightMaxDo: 1 } });
+  await round.queueNightTicket({ goal: '第一件 /tmp/a', brief: '第一件' }, 1000);
+  await round.queueNightTicket({ goal: '第二件 /tmp/b', brief: '第二件' }, 2000);
+  const text = buildDigestText({
+    entries: state.nightJournal,
+    tickets: state.pendingNightTicketQueue.length,
+  });
+  assert.match(text, /昨夜攒了 1 张待开票的活/, '真攒下的那张照旧报');
+  assert.match(text, /另有 待开票 1 张 撞到每夜上限/, '被跳过的要单独说一句');
+});
+
+test('连撞三拍每夜上限也不许退避：到上限是配置收手，不是这一拍坏了', async () => {
+  const { round, state } = makeNightRig({ cfg: { nightMaxDo: 1 } });
+  await round.queueNightTicket({ goal: '第一件 /tmp/a', brief: '第一件' }, 1000);
+  for (let index = 0; index < 3; index += 1) {
+    const blocked = await round.queueNightTicket({ goal: `撞上限的第 ${index} 件 /tmp/x${index}`, brief: `第 ${index} 件` }, 2000 + index);
+    assert.equal(blocked.ok, true, '每次都要当成功拍');
+    assert.equal(blocked.skipped, true);
+  }
+  assert.equal(state.failStreak, 0, 'failStreak 一下都不许涨');
+  assert.equal(state.retryAfterAt, 0, '不许把整夜退避掉');
+  assert.equal(
+    state.nightJournal.filter((one) => one.kind === 'do-skipped').length,
+    3,
+    '跳过三拍就记三笔，跟日志对得上',
+  );
 });

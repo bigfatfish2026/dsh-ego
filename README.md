@@ -77,7 +77,7 @@ node scripts/replay.js --arbiter      # 连 arbiter 一起重放（会真调模�
 
 绕不开的几项：`enabled` 总开关、`dryRun` 只记日志不发消息、`diceProbability` 命中线、`quietStart` / `quietEnd` 安静时段（小数小时）、`offPeakOnly` + `holidays` 峰价、`tickIntervalMinutes` 判的间隔（1–60 且整除 60）、`skipWhenTicketsBusy` 票台有活票就轮空、`privateOnly` 只走私聊、`targetSession`。
 
-夜间（`quietStart`~`quietEnd`，默认 23:40~08:00）由 `nightMode` 控制（默认开）：安静时段照常提议 + 裁决，但 `ask` 写进 dsh-backlog 的工单池一条「待办」（note 带 `来源=ego夜间`、裁决理由、提议原文和 `night:<hash>` 去重标记），`do` 进不过期的 `nightTicket` 队列，早上窗口恢复且主会话空闲时才逐条向主会话提开票申请；早上只发一条汇总。`nightMaxDo` / `nightMaxAsk` 是每夜上限（默认 0 = 不限），`nightDigest=false` 只入池不说话，`nightMode=false` 一键回到「安静时段一拍不跑」。工单池存储层复用 dsh-backlog 的 `BacklogStore`，路径可用 `DSH_EGO_BACKLOG_STORE` 覆盖。
+夜间（`quietStart`~`quietEnd`，默认 23:40~08:00）由 `nightMode` 控制（默认开）：安静时段照常提议 + 裁决，但 `ask` 写进 dsh-backlog 的工单池一条「待办」（note 带 `来源=ego夜间`、裁决理由、提议原文和 `night:<hash>` 去重标记），`do` 进不过期的 `nightTicket` 队列，早上窗口恢复且主会话空闲时才逐条向主会话提开票申请；早上只发一条汇总。`nightMaxDo` / `nightMaxAsk` 是每夜上限（默认 2，0 = 不限；超出的不入池、不排队，只记日志且早上的汇总会带一句），`nightDigest=false` 只入池不说话，`nightMode=false` 一键回到「安静时段一拍不跑」。工单池存储层复用 dsh-backlog 的 `BacklogStore`，路径可用 `DSH_EGO_BACKLOG_STORE` 覆盖。
 
 其余全部字段、区间、越界行为，以及 `proposer` / `judge` / `arbiter` 三段的模型配置，都写在 `cordis.patch.yml` 的注释里，默认值只在那里维护一份。gate 的各条规则、veto 判据、ask 文案的硬性规矩见 `docs/gate-rules.md`；候选行「读建议」的枚举口径见 `docs/read-hints.md`。
 

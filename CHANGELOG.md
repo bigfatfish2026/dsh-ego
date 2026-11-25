@@ -4,6 +4,27 @@
 
 ### Added
 
+- 夜间汇总多一段「另有 … 撞到每夜上限」：被 `nightMaxDo` / `nightMaxAsk` 拦下的条目
+  以前只写一行日志就消失，早上那条汇总里一个字都没有（11-24 夜丢了 3 张 do，汇总
+  只说「还有 2 张」）。现在跳过的每一条都记进当夜账本（`do-skipped` / `ask-skipped`）
+  并进汇总。
+- `lib/night.js` 导出 `findNightTicketByContent` / `trimJournal`：前者按 goal+brief 在
+  夜间队列里找同一条活，后者统一「超上限丢最旧并报数」。
+
+### Fixed
+
+- 同一份活在夜间队列里重复入队：`ticketCallId` 只查白天队列与 `ticketRequests`，
+  查不到就发新序号，于是夜里重判一次就在 `nightTicket` 里排成两条、各吃一张每夜额度，
+  早上还连着推两遍。现在先查夜间队列并沿用原 callId，重复时记 `night_do_duplicate`。
+- 重复入队不再错加 `nightDoCount`、不再在账本里记一笔并不存在的新 do。
+- 夜间队列 / `state.nightTickets` 台账 / `state.nightJournal` 满 50（账本 200）条挤掉
+  最旧时留一行 `night_ledger_trim`，以前是静默 `shift()`。
+
+### Changed
+
+- `nightMaxDo` / `nightMaxAsk` 的**插件默认值**从 0 改成 2，与 2026-11-23 起现网 profile
+  的口径对齐（之前只有 profile 是 2，插件自带默认与注释放着「0 = 不限」，读代码的人会看错）。
+
 - 第八档动机 `solution`「取已定方案并落地」：每拍只读 `~/.dsh/backlog/backlog.db` 取
   `status=已定方案` 的条目，stage2 只挑其中一条、只做方案的第一步（改文件 / 改配置），
   开票 goal 按「执行已定方案 <bl-id>：…；只做第一步：…；完成后把该条目改已完成」拼。
