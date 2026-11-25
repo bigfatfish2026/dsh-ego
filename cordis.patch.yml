@@ -266,15 +266,15 @@
             - read
 
         # ── E2：judge 第二意见（本地 gemini-decision 桥）─────────────────────────
-        # 终审判 do 之后多问一次本机桥（默认 127.0.0.1:3427/systemone），只做保守方向：
+        # 终审判 do 之后多问一次本机 decision 模型（默认 127.0.0.1:3425/v1/systemone，magpie 网关），只做保守方向：
         # 桥判 ask 且 confidence ≥ minConfidence 时，这一拍就地降级成 ask（只多问一句、不多做）；
         # 桥回 do / 置信度不够 / 超时 / 校验不过，一律用 judge 的原结论。
         # 默认关：关着时一次请求都不发，judge 输出与接入前逐字一致。
         # 六项校验在 lib/gemini-decision.js：2xx / answers 形状 / 候选 / prob 键集合 / Σp / confidence 一致。
         geminiDecision:
           enabled: false
-          # 本机桥地址；插件不读 key（鉴权在桥的 systemd EnvironmentFile 里）
-          baseUrl: http://127.0.0.1:3427
+          # 本机 decision 网关地址；插件不读 key（鉴权在网关侧的 systemd EnvironmentFile 里）
+          baseUrl: http://127.0.0.1:3425
           model: gemini-decision-1
           # 单次请求超时；到点整条建议作废，judge 原结论照走
           timeoutMs: 2500
