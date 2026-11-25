@@ -150,6 +150,101 @@ test('落盘：写前过 mask，sk- / ghp_ / github_pat_ / crsr_ / oc_ 都不落
   assert.match(one.plan.idea, /\*\*\*/);
 });
 
+/* ── 顶层拍号保真（UUID v4） ─────────────────────────────────────── */
+
+const CALL_ID_A = '3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b';
+const CALL_ID_B = '9e8d7c6b-5a49-4382-9f10-1a2b3c4d5e6f';
+
+test('拍号：同一拍两版（ts 不同）落盘后 callId 相同且是原 UUID', () => {
+  const dir = tmpdir();
+  const file = path.join(dir, 'plans.jsonl');
+  appendPlan(record({ ts: 1762776000000, callId: CALL_ID_A, round: 0 }), { file, log: () => {} });
+  appendPlan(record({ ts: 1762776060000, callId: CALL_ID_A, round: 1 }), { file, log: () => {} });
+  const [one, two] = readLines(file).map((line) => JSON.parse(line));
+  assert.equal(one.callId, CALL_ID_A);
+  assert.equal(two.callId, CALL_ID_A);
+  assert.equal(one.callId, two.callId);
+  assert.notEqual(one.ts, two.ts, '两版 ts 不同，确实不是同一行');
+});
+
+test('拍号：两拍不同 callId 落盘后仍不同', () => {
+  const dir = tmpdir();
+  const file = path.join(dir, 'plans.jsonl');
+  appendPlan(record({ callId: CALL_ID_A }), { file, log: () => {} });
+  appendPlan(record({ callId: CALL_ID_B }), { file, log: () => {} });
+  const [one, two] = readLines(file).map((line) => JSON.parse(line));
+  assert.equal(one.callId, CALL_ID_A);
+  assert.equal(two.callId, CALL_ID_B);
+  assert.notEqual(one.callId, two.callId);
+});
+
+test('拍号：不可信的非空值仍遮成 ***，空值维持空', () => {
+  const dir = tmpdir();
+  const file = path.join(dir, 'plans.jsonl');
+  const cases = [
+    ['***', '***'],
+    ['', ''],
+    ['abc', 'abc'], // 短串本来就不触发长串规则，保持原样
+    ['3f2a1b4c5d6e4f708a9b0c1d2e3f4a5b', '***'], // 36 位但没连字符
+    ['3f2a1b4c-5d6e-1f70-8a9b-0c1d2e3f4a5b', '***'], // 版本位不是 4
+    ['3F2A1B4C-5D6E-4F70-8A9B-0C1D2E3F4A5B', '***'], // 大写不算
+    ['3f2a1b4c-5d6e-4f70-7a9b-0c1d2e3f4a5b', '***'], // 变体位不对
+  ];
+  for (const [input] of cases) appendPlan(record({ callId: input }), { file, log: () => {} });
+  const out = readLines(file).map((line) => JSON.parse(line));
+  assert.deepEqual(out.map((one) => one.callId), cases.map(([, want]) => want));
+});
+
+test('拍号：正文 / why 里的 UUID 仍被遮成 ***，只在顶层豁免', () => {
+  const dir = tmpdir();
+  const file = path.join(dir, 'plans.jsonl');
+  const plan = { ...PLAN, idea: `对照 ${CALL_ID_B} 那条`, why: `拍号 ${CALL_ID_B} 记错了` };
+  appendPlan(record({ callId: CALL_ID_A, plan }), { file, log: () => {} });
+  const raw = fs.readFileSync(file, 'utf8');
+  const one = JSON.parse(readLines(file)[0]);
+  assert.equal(one.callId, CALL_ID_A, '顶层拍号保真');
+  assert.equal(raw.includes(CALL_ID_B), false, '正文里的同一个 UUID 不许明文落盘');
+  assert.equal(one.plan.idea.includes('***'), true);
+  assert.equal(one.plan.why.includes('***'), true);
+});
+
+test('拍号：嵌套对象里同名 key 的 UUID 照旧被遮', () => {
+  const dir = tmpdir();
+  const file = path.join(dir, 'plans.jsonl');
+  const plan = { ...PLAN, object: { ...PLAN.object, callId: CALL_ID_B }, meta: [{ callId: CALL_ID_B }] };
+  appendPlan(record({ callId: CALL_ID_A, plan }), { file, log: () => {} });
+  const one = JSON.parse(readLines(file)[0]);
+  assert.equal(one.callId, CALL_ID_A);
+  assert.equal(one.plan.object.callId, '***', '嵌套同名 key 不豁免');
+  assert.equal(one.plan.meta[0].callId, '***', '数组里的也不豁免');
+});
+
+test('拍号：长路径段仍按老规则遮（豁免只针对顶层 callId）', () => {
+  const dir = tmpdir();
+  const file = path.join(dir, 'plans.jsonl');
+  const plan = { ...PLAN, step2: { ...PLAN.step2, files: ['/tmp/abcdefghijklmnopqrst/a.js'] } };
+  appendPlan(record({ callId: CALL_ID_A, plan }), { file, log: () => {} });
+  const one = JSON.parse(readLines(file)[0]);
+  assert.equal(one.callId, CALL_ID_A);
+  assert.equal(one.plan.step2.files[0], '/tmp/***/a.js');
+});
+
+test('拍号：读回老格式行（callId=***）不炸，新行照旧保真', () => {
+  const dir = tmpdir();
+  const file = path.join(dir, 'plans.jsonl');
+  fs.writeFileSync(
+    file,
+    `${JSON.stringify({ ts: 1762776000000, callId: '***', comboKey: 'inspect|files→edit-file|files' })}\n`,
+    'utf8',
+  );
+  const res = appendPlan(record({ ts: 1762776060000, callId: CALL_ID_A }), { file, log: () => {} });
+  assert.equal(res.ok, true);
+  const [old, fresh] = readLines(file).map((line) => JSON.parse(line));
+  assert.equal(old.callId, '***');
+  assert.equal(fresh.callId, CALL_ID_A);
+  assert.equal(readLines(file).length, 2);
+});
+
 /* ── 写失败不影响裁决 ─────────────────────────────────────────────── */
 
 test('落盘：append 抛错只记一行日志，不往外抛', () => {
