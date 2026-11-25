@@ -22,6 +22,10 @@
 
 ### Changed
 
+- `createRoundEngine` 新增可选依赖 `openNightStore`：夜间 ask 落池用的存储层可注入。
+  以前单测不注入，`nightAsk` 走真库 `~/.dsh/backlog/backlog.db`，跑一轮测试就往主人的
+  工单池里塞一条假「[夜] 不限的一条」（bl-mwvg2ujd-f42c）。现在 `test/night.test.mjs`
+  统一注入内存假存储，线上不传、行为不变。
 - `nightMaxDo` / `nightMaxAsk` 的**插件默认值**从 0 改成 2，与 2026-11-23 起现网 profile
   的口径对齐（之前只有 profile 是 2，插件自带默认与注释放着「0 = 不限」，读代码的人会看错）。
 
