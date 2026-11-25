@@ -2,7 +2,7 @@
 
 gate 是裁决器的第一关：纯代码，不调模型，只看提议器（stage2）交上来的那一份 plan 能不能用。它不拼提示词、不发消息、不写 state，只回一份 verdict，形状是 `{ok, allowDo, reject, downgrade, unsupported, unsure, notes, hits, checks}`（gate.js:995-1005）。
 
-在裁决器里的位置是 **gate → veto → arbiter → judge**：gate 先跑 GA1~GA20（GA18 起按动机挂表，见 `STAGE2_MOTIVATION_RULES`），判不了的灰色条目收进 `unsure`；过了否决账本（veto）之后，`unsure` 非空才叫 arbiter 逐条判；最后才把方案交给终审。arbiter 这一关见文末。
+在裁决器里的位置是 **gate → veto → arbiter → judge**：gate 先跑 GA1~GA21（GA18 起按动机挂表，见 `STAGE2_MOTIVATION_RULES`；GA21 是方案三问），判不了的灰色条目收进 `unsure`；过了否决账本（veto）之后，`unsure` 非空才叫 arbiter 逐条判；最后才把方案交给终审。arbiter 这一关见文末。
 
 gate 里有两段：`checkStage2Plan` 是纯函数（不读盘、不看时钟，515 起），跑 GA1/GA2/GA6~GA14 的轻量版加 GA15/GA16 结构；GA3/GA4/GA5 要真读盘，由 `createGate().checkPlan` 拿注入的 deps 补跑（1668 起）。
 
@@ -41,6 +41,7 @@ gate 里有两段：`checkStage2Plan` 是纯函数（不读盘、不看时钟，
 | GA18 | 来源可核（solution） | 方案没写 bl-id，或写的 bl-id 不在本拍已定方案池里 | downgrade（→ ask） | gate.js:494-521 |
 | GA19 | 执行面收敛（solution） | steps 里有 edit-file/edit-config 以外的动作原语，或方案文本命中重启/停服/删数据/改表 | downgrade（→ ask） | gate.js:524-553 |
 | GA20 | 单步（solution） | plan.steps 里的动作步多于 1 步 | downgrade（→ ask） | gate.js:556-566 |
+| GA21 | 方案三问（gain / surface / fallback） | 三问缺、某项是空话（去标点后不足 8 字 / 只有「提升」「优化」这类词）、gain 没数字也没点到方案自己的对象·文件·证据，或三问与正文自相矛盾 | downgrade（→ silent） | gate.js:636-765, 1251-1269 |
 
 ## GA1：pick 必须是本拍候选，且那一格开着
 
@@ -372,9 +373,26 @@ GA16 要求第一步是只读原语，合法方案最少是「读一步 + 动一
 
 **处置**：GA18/19/20 都是 downgrade、code 同名、原判 `ask`；进重写，用满次数落 `ask`（问人要不要开票）。
 
+## GA21：方案三问（gain / surface / fallback）
+
+**防什么**：stage2 方案只写「要做什么」，不写「提高了什么、新增什么能力面、失败怎么回退」。这一条是正向闸：答不出、写空话、或跟正文对不上，就按 downgrade 处理，code=`GA21`。
+
+**判据**（`checkJustify`，gate.js:706；常量 `JUSTIFY_MIN_CHARS=8` / `JUSTIFY_EMPTY_TALK` 在 639-646）：
+
+- 判定范围：`pick` 非空且 `step1.verdict=continue`。abort 的方案本来就没有动作，不判。
+- 缺三问：`justify` 不是对象 / 三项全空 → 看开关（下一条）。
+- 空话：任一项去掉标点后不足 8 字；或整句只是 `JUSTIFY_EMPTY_TALK` 里的词（提升 / 优化 / 更好 / 改进 / 略 / 同上 / 无 / 暂无 / n/a）；或 `gain` 里既没有数字，也没点到 `object.value` / `plan.files` / `evidence.value` 里的任何一项。
+- 自相矛盾（三种）：`surface` 命中 `不新增|无新增|没有新增` 但 `plan.steps` 含 P4/P5/P6/P7（service / memory-write / delete / outbound）；`fallback` 命中 `无法回退|不可回退|回不去` 但 `intent.reversibility` 是 auto 或 manual；`fallback` 命中 `无需回退|不用回退|不必回退` 但 `intent.reversibility` 是 none。
+
+**处置与重写**：`softFail('GA21', why)` → downgrade，code=`GA21`，`originalAction='silent'`。进重写循环（`rewriteGaFix` 在 proposer.js:339 给具体修法），用满次数落 `silent`，不打扰用户。
+
+**开关**：`context.justifyRequired` 只管「justify 缺失」这一条——线上引擎传 `true`，缺就判；replay 与老调用方不传（`false`）只推一条 note「GA21：旧方案没有 justify，未判」，旧记录不会因此变 worse。写了 justify 的方案无论开关都照判（replay 才看得见这条规则的效果）。
+
+**不动的东西**：replay 逻辑、state 字段都没动；三问只落在 plan 上（`parseStage2Plan` 的 abort / continue 两个 return 都带 `justify`），旧记录没有这个键就是 `null`。
+
 ## 重写与耗尽
 
-`REWRITE_GATE_ACTIONS`（gate.js:439-451）的完整映射：
+`REWRITE_GATE_ACTIONS`（gate.js:403-419）的完整映射：
 
 | GA | 用满次数后落点 | 原本处置 |
 | --- | --- | --- |
@@ -392,8 +410,9 @@ GA16 要求第一步是只读原语，合法方案最少是「读一步 + 动一
 | GA18 | ask | downgrade（solution 专属） |
 | GA19 | ask | downgrade（solution 专属） |
 | GA20 | ask | downgrade（solution 专属） |
+| GA21 | silent | downgrade（方案三问） |
 
-落到 `silent` 的：GA1、GA2、GA3、GA6、GA10、GA15、GA16、GA17，共 8 条，都是原本判拒的关。落到 `ask` 的：GA7、GA8、GA12、GA18、GA19、GA20，共 6 条（后三条是 solution 专属，原本就按降级 ask 处置）。
+落到 `silent` 的：GA1、GA2、GA3、GA6、GA10、GA15、GA16、GA17、GA21，共 9 条（GA21 原本就按降级处置，用满次数落 silent）。落到 `ask` 的：GA7、GA8、GA12、GA18、GA19、GA20，共 6 条（后三条是 solution 专属，原本就按降级 ask 处置）。
 
 不在表里的：GA4/GA5/GA9/GA14 保持 reject，不进循环；GA11/GA13 判不了、没有 code，不进循环，仍是普通降级进终审落 `ask`。GA12 的三个分支各带自己的 code（`files`/`steps`/`estLines`），`REWRITE_CODES` 是这 14 个 GA 名加这三个分支。
 

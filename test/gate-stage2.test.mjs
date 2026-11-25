@@ -1207,7 +1207,7 @@ test('index.js 的接线：deps 注入一处、gate.checkPlan 一处、ga_hits �
   assert.equal(index.includes('PLUGIN_DIR'), true, '相对路径先按插件目录解析');
   assert.equal(index.includes('REPO_ROOT'), true, '查不到再按仓库根解析');
   assert.ok(index.indexOf('gate.checkPlan(') < index.lastIndexOf('rememberCombo(candidate);'), '校验在记账之前');
-  assert.equal(index.includes('GA1~GA20'), true, '方案校验的注释跟着加到 GA20（两段式两条 + solution 三道）');
+  assert.equal(index.includes('GA1~GA21'), true, '方案校验的注释跟着加到 GA21（两段式两条 + solution 三道 + 三问）');
   assert.equal(index.includes('outboundTargets: normalizeOutboundTargets(cfg.outboundTargets)'), true, 'GA14 白名单从配置接到 gate');
   assert.equal(index.includes('normalizeOutboundTargets'), true, 'gate.js 的归一函数要在 index 里用上，不另写一份');
 });

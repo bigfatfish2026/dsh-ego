@@ -436,7 +436,11 @@ test('接线源码：一拍取一次池，传进 buildGrid / gate / 提示词 / 
   assert.match(source, /const solutionPool = await solutionPoolOfRound\(\)/, 'buildGrid 之前取一次池');
   assert.match(source, /materials: section\.materials,[\s\S]{0,200}solutionPool,/, '池传给 buildGrid');
   assert.match(source, /solutionPool,\n\s+\}\)/, '池传给 gate.checkPlan');
-  assert.match(source, /buildStage2Prompt\(\[candidate\], section\.materials, \{ now: new Date\(nowMs\), state, solutionPool \}\)/);
+  assert.match(
+    source,
+    /buildStage2Prompt\(\[candidate\], section\.materials, \{[\s\S]{0,200}?solutionPool,[\s\S]{0,120}?comboHistory:/,
+    '提示词收到这一对的历史（B 组合路由）',
+  );
   assert.match(source, /applySolutionGoal\(outcome\.decision, finalPlan, candidate, solutionPool, \{ log \}\)/);
   // 取池失败不许抛：provider 外层还有 try/catch，池一定是数组
   assert.match(source, /Array\.isArray\(pool\) \? pool\.filter/, 'provider 给的不是数组也收成空池');

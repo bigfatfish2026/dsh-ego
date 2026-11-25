@@ -4,6 +4,14 @@
 
 ### Added
 
+- **GA21 justify gate + combo-history routing (stage2).** A stage2 plan now has to answer
+  three questions — `justify.gain` / `surface` / `fallback`; missing, vague (under 8 chars
+  or pure filler), unanchored (`gain` with no number and no object/file/evidence), or
+  self-contradicting answers downgrade with `GA21` / code `GA21` and fall back to `silent`
+  after rewrites. Separately, `lib/combo-history.js` summarises `plans.jsonl` per `comboKey`
+  (win/loss, last 3 rejection reasons); grid multiplies the random pick weight by
+  `clamp((win+1)/(loss+1), 0.4, 1.5)` and the stage2 prompt carries a ≤300-char digest.
+  `justifyRequired` only governs the missing-field case, so replaying old records is unchanged.
 - 夜间汇总多一段「另有 … 撞到每夜上限」：被 `nightMaxDo` / `nightMaxAsk` 拦下的条目
   以前只写一行日志就消失，早上那条汇总里一个字都没有（11-24 夜丢了 3 张 do，汇总
   只说「还有 2 张」）。现在跳过的每一条都记进当夜账本（`do-skipped` / `ask-skipped`）

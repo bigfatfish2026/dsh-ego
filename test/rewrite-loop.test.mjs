@@ -410,8 +410,9 @@ test('原本降级的 GA7 重写三次仍不合格 → 落 ask 问用户', async
 /* ── 9. 来源表本身 ─────────────────────────────────────────────────── */
 
 test('可重写来源表：十四关 + GA12 三分支，原处置只有 silent / ask', () => {
-  // GA18/GA19/GA20 是 solution 动机的专属关，落点 ask（给模型重写一次的机会，改不好问人）
-  assert.deepEqual(Object.keys(REWRITE_GATE_ACTIONS).sort(), ['GA1', 'GA10', 'GA12', 'GA15', 'GA16', 'GA17', 'GA18', 'GA19', 'GA2', 'GA20', 'GA3', 'GA6', 'GA7', 'GA8']);
+  // GA18/GA19/GA20 是 solution 动机的专属关，落点 ask（给模型重写一次的机会，改不好问人）；
+  // GA21（方案三问）落 silent：上线初期模型常漏写 justify，用 ask 会变成每分钟打扰用户
+  assert.deepEqual(Object.keys(REWRITE_GATE_ACTIONS).sort(), ['GA1', 'GA10', 'GA12', 'GA15', 'GA16', 'GA17', 'GA18', 'GA19', 'GA2', 'GA20', 'GA21', 'GA3', 'GA6', 'GA7', 'GA8']);
   for (const [ga, action] of Object.entries(REWRITE_GATE_ACTIONS)) {
     assert.ok(action === 'silent' || action === 'ask', `${ga} 的原处置只能是 silent / ask`);
     assert.ok(REWRITE_CODES.has(ga), `${ga} 要在 REWRITE_CODES 里`);
