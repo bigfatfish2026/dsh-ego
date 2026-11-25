@@ -6,7 +6,7 @@
  *   2. 归纳：GA 路出规则句（带 GA 号与原语）、veto 路、judge 路各走各的；
  *   3. 上限：最多 5 条，命中最少（且最旧）的先淘汰；14 天没再命中自动掉出；
  *   4. 存储：lessons.json 读写往返，坏文件/坏条回退空表不炸；
- *   5. 提示词：0 条不加段，有则整段 ≤400 字，combo 已点名的 GA 不重复；
+ *   5. 提示词：0 条不加段，有则整段 ≤520 字，combo 已点名的 GA 不重复；
  *   6. 触发：距上次 <24h 或新增拒因 <20 条时不写盘，满足才覆写；
  *   7. 与 combo 摘要的先后：lessons 在候选表之后、combo 摘要之前。
  */
@@ -241,7 +241,7 @@ test('渲染：0 条不加段', () => {
   assert.deepEqual(renderLessonLines([{ id: 'x', rule: '' }]), []);
 });
 
-test('渲染：有规则时一句一行，整段 ≤400 字', () => {
+test('渲染：有规则时一句一行，整段 ≤520 字', () => {
   const lessons = [lessonOf('a', 5), lessonOf('b', 3)];
   const lines = renderLessonLines(lessons);
   assert.match(lines[0], /近期反复被拦的毛病/);
@@ -249,11 +249,24 @@ test('渲染：有规则时一句一行，整段 ≤400 字', () => {
   assert.ok([...lines.join('\n')].length <= LESSON_PROMPT_MAX);
 });
 
-test('渲染：规则特别长时截断到 400 字以内', () => {
+test('渲染：规则特别长时截断到 520 字以内', () => {
   const lessons = Array.from({ length: 6 }, (_, i) => lessonOf(`l${i}`, 10 - i, NOW, '很长的规则'.repeat(40)));
   const text = renderLessonLines(lessons).join('\n');
   assert.ok([...text].length <= LESSON_PROMPT_MAX, `实际 ${[...text].length} 字`);
   assert.ok(text.endsWith('…'));
+});
+
+test('渲染：5 条各 90 字时五条都完整放下，不被截', () => {
+  // 每条正好 LESSON_RULE_MAX 字：段预算 520 = 标题 32 + 5 ×（「· 」2 + 90 + 换行 1）+ 23 余量
+  const rule = '核'.repeat(90);
+  const lessons = Array.from({ length: 5 }, (_, i) => lessonOf(`full${i}`, 10 - i, NOW, rule));
+  const lines = renderLessonLines(lessons);
+  assert.equal(lines.length, 6, '标题 + 5 条');
+  assert.equal(lines.slice(1).filter((one) => one.endsWith('…')).length, 0, '没有一条被截');
+  assert.ok(lines.slice(1).every((one) => [...one].length === 92), '每条都完整');
+  const text = lines.join('\n');
+  assert.ok([...text].length <= LESSON_PROMPT_MAX);
+  assert.equal([...text].length, 32 + 5 * 92 + 5);
 });
 
 test('渲染：combo 已点名的 GA 不重复出现', () => {
