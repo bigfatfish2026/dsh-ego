@@ -345,6 +345,12 @@ function makeNightRig({ cfg: cfgOverrides = {} } = {}) {
     judge: { enabled: true },
     ...cfgOverrides,
   };
+  /*
+   * 夜间 ask 会经 createNightPool 落工单池。不注入 openStore 时它落的是真库
+   * ~/.dsh/backlog/backlog.db——单测往里写一条假「[夜]」条目，主人翻池子就会看到。
+   * 这里统一注入内存假存储，测试一个字节都不落盘。
+   */
+  const store = fakeStore();
   const round = createRoundEngine({
     cfg,
     state,
@@ -356,8 +362,9 @@ function makeNightRig({ cfg: cfgOverrides = {} } = {}) {
     adjudicator: { getVetoLedger() {} },
     scopeOf: () => 'c2c',
     fmt: (t) => String(t),
+    openNightStore: async () => store,
   });
-  return { round, state, cfg, logs };
+  return { round, state, cfg, logs, store };
 }
 
 test('夜间 do：同一条活重判一次不重复入队，也不白吃一张每夜上限', async () => {
@@ -432,4 +439,18 @@ test('连撞三拍每夜上限也不许退避：到上限是配置收手，不�
     3,
     '跳过三拍就记三笔，跟日志对得上',
   );
+});
+
+test('夜间 ask 走注入的假存储，不碰真工单池库', async () => {
+  const { round, store, state } = makeNightRig();
+  const written = await round.nightAsk('这条只该进假池子', 5000, { idea: '点子', why: '理由', reason: '裁决' });
+  assert.equal(written.ok, true);
+  assert.equal(store.items.length, 1, '假存储里正好一条');
+  assert.match(store.items[0].title, /^\[夜\] /);
+  assert.match(store.items[0].note, /来源=ego夜间/);
+  assert.equal(state.nightAskCount, 1);
+  // 同一句再来一次：假存储按去重标记认重复，不写第二条
+  const again = await round.nightAsk('这条只该进假池子', 6000, { idea: '点子', why: '理由', reason: '裁决' });
+  assert.equal(again.duplicate, true);
+  assert.equal(store.items.length, 1, '不是 2 条');
 });
