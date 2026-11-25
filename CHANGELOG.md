@@ -4,6 +4,14 @@
 
 ### Added
 
+- **Scale-aware replay weights.** `lib/change-scale.js` buckets each pair's replayed plans
+  by change size — small (`files ≤1` and `writes ≤1`), medium, large (`files ≥3` or a step
+  touching delete / service / outbound) — and only the bucket of the pair's most recent plan
+  feeds the weight: down-weight when the same-bucket worse rate reaches 35% (small/medium) or
+  50% (large), with floors 0.4 / 0.6 / 0.8. `lib/replay.js` exports the pure `judgeChange`
+  comparison and `loadScaleHistory` (mtime+size cached; 283 rows ≈143 ms cold, 0 ms warm).
+  Grid multiplies combo × scale and clamps the result to 0.3–2.0; the deterministic sort path
+  is unchanged.
 - **Lessons: fold recurring rejections into the stage2 prompt.** `lib/lessons.js` counts the
   rejection reasons already stored in `plans.jsonl` (gate reject/downgrade, veto hits, judge
   reasons) over a 14-day window, folds them into at most 5 rule sentences kept in

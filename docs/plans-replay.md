@@ -83,6 +83,31 @@ arbiter 判 reject 或 downgrade 都会让条目算「变差」（旧 gate 放�
 返回 `{ total, better, same, worse, items, arbiter }`。默认不调模型、不写任何文件、不动 state；
 只有传了 `arbiter` 才真调模型。
 
+## 变差率按改动规模分层接权重
+
+combo 历史把大改和小修小补混在一个账本里，大改更容易被判变差，一路拒下来那一对就被压到
+系数下限、永远抽不到。现在同一对的重放结果按改动规模分三档，权重只看它**最近一次**落盘方案
+所在档的账（`lib/change-scale.js`）：
+
+| 档 | 判据 | worse 率阈值 | 系数下限 |
+| --- | --- | --- | --- |
+| small | `files ≤ 1` 且 `writes ≤ 1` | < 35% 不降权 | 0.4 |
+| medium | 其余 | < 35% 不降权 | 0.6 |
+| large | `files ≥ 3`，或 `steps` 含 delete / service / outbound 任一 | < 50% 不降权 | 0.8 |
+
+`files` 取 `plan.plan.files` 与 `step2.files` 去重合并；`writes` 取 `intent.impact` 的
+paths + services + remotes 非空条数；`steps` 认 `P6×files` / `delete|files` / `delete×files`
+三种写法。判定顺序是先 large 再 small，所以「3 个文件但只写 1 处」算 large。
+
+系数：`worse 率 < 阈值` → 1；否则 `clamp(1 - worse 率, 该档下限, 1)`。
+与 combo 系数合并是 `clamp(combo × scale, 0.3, 2.0)`（`COMBINED_FACTOR_MIN/MAX`，顺序固定
+「先 combo 后 scale」），只乘在随机抽取的权重上，确定性排序路径不受影响。
+
+成本：每拍开跑时用同一份 plans.jsonl 现算（`loadScaleHistory`，gate 只建一次，只重放
+`lib/replay.js` 的 `judgeChange` 口径，不调模型、不写盘）。实测 283 行首次约 143ms
+（其中 gate 重放 119ms），文件 mtime+size 没变时直接复用整表（0ms）。没有 `plan` 的
+中间态记录（abort / empty）不进分母。
+
 ## 两个已知边界
 
 GA3/GA4 要读盘那半默认不跑（不传 `deps` 就记 unsupported，别把「未核」当「合格」）；GA14 的
